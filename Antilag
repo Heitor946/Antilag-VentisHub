@@ -1,651 +1,1109 @@
 --[[
 ========================================================
-                 VENTIS HUB - FPS BOOSTER
-                         UI STYLE
+        VENTIS HUB — V18.1 MOBILE-FRIENDLY EDITION
+     Extreme Performance Suite • Premium UI • v18.1
 ========================================================
-LocalScript
-StarterPlayer > StarterPlayerScripts
-
-• Ultra FPS
-• Remover texturas
-• Partículas
-• Luzes
-• Sombras
-• Pós-efeitos
-• Água
-• Materiais
-• FPS Counter
-• Restaurar
-• Abrir/fechar pelo botão flutuante
-• Interface arrastável
+  • Layout compacto (cabe em telas de celular)
+  • Bolinha flutuante para reabrir sem reexecutar
+  • Toggles modernos + FPS com cor dinâmica
+  • Drag correto, minimizar, fechar
 ========================================================
 ]]
 
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Terrain = workspace.Terrain
+--======================================================
+-- SERVIÇOS
+--======================================================
 
-local player = Players.LocalPlayer
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local Lighting     = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local UserInput    = game:GetService("UserInputService")
+local UserSettings = game:GetService("UserSettings")
+
+local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
---------------------------------------------------------
--- ESTADO
---------------------------------------------------------
+--======================================================
+-- TEMA
+--======================================================
 
-local states = {
-    ultra = false,
-    textures = false,
-    particles = false,
-    lights = false,
-    shadows = false,
-    effects = false,
-    water = false,
-    materials = false,
-    fps = true
+local THEME = {
+    bg           = Color3.fromRGB(13, 13, 20),
+    bgPanel      = Color3.fromRGB(20, 20, 30),
+    bgRow        = Color3.fromRGB(26, 26, 38),
+    bgRowHover   = Color3.fromRGB(34, 34, 50),
+    border       = Color3.fromRGB(42, 42, 60),
+    borderLight  = Color3.fromRGB(58, 58, 82),
+    text         = Color3.fromRGB(240, 240, 255),
+    textDim      = Color3.fromRGB(140, 140, 175),
+    accent       = Color3.fromRGB(0, 220, 130),
+    accent2      = Color3.fromRGB(0, 180, 255),
+    danger       = Color3.fromRGB(240, 70, 90),
+    warn         = Color3.fromRGB(255, 190, 60),
+    success      = Color3.fromRGB(0, 220, 130),
+}
+
+local TWEEN_FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
+local TWEEN_MED  = TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local TWEEN_BACK = TweenInfo.new(0.35, Enum.EasingStyle.Back,  Enum.EasingDirection.Out)
+
+local SHADOW_IMG = "rbxassetid://6014261993"
+
+--======================================================
+-- ESTADO
+--======================================================
+
+local on    = true
+local busy  = false
+local generation = 0
+
+local categories = {
+    textures         = true,
+    gui_images       = true,
+    sky_atmosphere   = true,
+    particles        = true,
+    lights           = true,
+    post_effects     = true,
+    shadows_material = true,
+    water_terrain    = true,
+    global_lighting  = true,
+    motion_blur      = true,
+    graphics_quality = true,
+}
+
+local CATEGORY_ORDER = {
+    "textures", "gui_images", "sky_atmosphere", "particles",
+    "lights", "post_effects", "shadows_material", "water_terrain",
+    "global_lighting", "motion_blur", "graphics_quality",
+}
+
+local CATEGORY_LABEL = {
+    textures         = "Texturas / Decals",
+    gui_images       = "Imagens de GUI",
+    sky_atmosphere   = "Céu / Atmosfera",
+    particles        = "Partículas",
+    lights           = "Luzes",
+    post_effects     = "Pós-Processamento",
+    shadows_material = "Sombras / Material",
+    water_terrain    = "Água / Terreno",
+    global_lighting  = "Iluminação Global",
+    motion_blur      = "Motion Blur",
+    graphics_quality = "Qualidade Gráfica",
 }
 
 local saved = {}
 
---------------------------------------------------------
--- SALVAR
---------------------------------------------------------
-
-local function save(obj, property)
-
-    saved[obj] = saved[obj] or {}
-
-    if saved[obj][property] == nil then
-
-        local ok, value = pcall(function()
-            return obj[property]
-        end)
-
-        if ok then
-            saved[obj][property] = value
+local function cleanupSaved()
+    local removed = 0
+    for obj in pairs(saved) do
+        if not obj or not obj.Parent then
+            saved[obj] = nil
+            removed += 1
         end
+    end
+    return removed
+end
 
+--======================================================
+-- SALVAR / RESTAURAR
+--======================================================
+
+local function save(obj, prop, category)
+    local t = saved[obj]
+    if not t then t = {} ; saved[obj] = t end
+    if t[prop] == nil then
+        local ok, v = pcall(function() return obj[prop] end)
+        if ok then t[prop] = { value = v, category = category } end
     end
 end
 
---------------------------------------------------------
--- TEXTURAS
---------------------------------------------------------
-
-local function removeTextures(obj)
-
-    if obj:IsA("Decal") or obj:IsA("Texture") then
-
-        save(obj, "Transparency")
-        obj.Transparency = 1
-
-    elseif obj:IsA("MeshPart") then
-
-        save(obj, "TextureID")
-        obj.TextureID = ""
-
-    elseif obj:IsA("SpecialMesh") then
-
-        save(obj, "TextureId")
-        obj.TextureId = ""
-
-    end
+local function set(obj, prop, value, category)
+    save(obj, prop, category)
+    pcall(function() obj[prop] = value end)
 end
 
---------------------------------------------------------
--- PARTÍCULAS
---------------------------------------------------------
-
-local function removeParticles(obj)
-
-    if obj:IsA("ParticleEmitter")
-        or obj:IsA("Trail")
-        or obj:IsA("Beam")
-        or obj:IsA("Fire")
-        or obj:IsA("Smoke")
-        or obj:IsA("Sparkles") then
-
-        save(obj, "Enabled")
-        obj.Enabled = false
-
-    end
-end
-
---------------------------------------------------------
--- LUZES
---------------------------------------------------------
-
-local function removeLights(obj)
-
-    if obj:IsA("PointLight")
-        or obj:IsA("SpotLight")
-        or obj:IsA("SurfaceLight") then
-
-        save(obj, "Enabled")
-        obj.Enabled = false
-
-    end
-end
-
---------------------------------------------------------
--- MATERIAIS
---------------------------------------------------------
-
-local function lowMaterials(obj)
-
-    if obj:IsA("BasePart") then
-
-        save(obj, "Material")
-        obj.Material = Enum.Material.SmoothPlastic
-
-    end
-end
-
---------------------------------------------------------
--- SOMBRAS
---------------------------------------------------------
-
-local function shadowsOFF()
-
-    save(Lighting, "GlobalShadows")
-    Lighting.GlobalShadows = false
-
-end
-
---------------------------------------------------------
--- FOG
---------------------------------------------------------
-
-local function fogOFF()
-
-    save(Lighting, "FogStart")
-    save(Lighting, "FogEnd")
-
-    Lighting.FogStart = 9e9
-    Lighting.FogEnd = 9e9
-
-end
-
---------------------------------------------------------
--- PÓS-EFEITOS
---------------------------------------------------------
-
-local function effectsOFF()
-
-    for _, obj in ipairs(Lighting:GetChildren()) do
-
-        if obj:IsA("PostEffect") then
-
-            save(obj, "Enabled")
-            obj.Enabled = false
-
-        elseif obj:IsA("Atmosphere") then
-
-            save(obj, "Density")
-            obj.Density = 0
-
-        end
-
-    end
-end
-
---------------------------------------------------------
--- ÁGUA
---------------------------------------------------------
-
-local function waterOFF()
-
-    save(Terrain, "WaterWaveSize")
-    save(Terrain, "WaterWaveSpeed")
-    save(Terrain, "WaterReflectance")
-    save(Terrain, "WaterTransparency")
-
-    Terrain.WaterWaveSize = 0
-    Terrain.WaterWaveSpeed = 0
-    Terrain.WaterReflectance = 0
-    Terrain.WaterTransparency = 1
-
-end
-
---------------------------------------------------------
--- ULTRA FPS
---------------------------------------------------------
-
-local function ultraFPS()
-
-    shadowsOFF()
-    fogOFF()
-    effectsOFF()
-    waterOFF()
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-
-        removeTextures(obj)
-        removeParticles(obj)
-        removeLights(obj)
-        lowMaterials(obj)
-
-    end
-
-end
-
---------------------------------------------------------
--- RESTAURAR
---------------------------------------------------------
-
-local function restoreAll()
-
-    for obj, properties in pairs(saved) do
-
+local function restore()
+    local count = 0
+    for obj, props in pairs(saved) do
         if obj and obj.Parent then
-
-            for property, value in pairs(properties) do
-
-                pcall(function()
-                    obj[property] = value
-                end)
-
+            for prop, data in pairs(props) do
+                pcall(function() obj[prop] = data.value end)
             end
-
+            count += 1
         end
-
     end
-
     saved = {}
-
+    print("⚡ VENTIS: " .. count .. " objeto(s) restaurado(s).")
 end
 
---------------------------------------------------------
--- NOVOS OBJETOS
---------------------------------------------------------
+local function restoreCategory(catName)
+    local count = 0
+    for obj, props in pairs(saved) do
+        if obj and obj.Parent then
+            for prop, data in pairs(props) do
+                if data.category == catName then
+                    pcall(function() obj[prop] = data.value end)
+                    props[prop] = nil
+                    count += 1
+                end
+            end
+            if next(props) == nil then saved[obj] = nil end
+        else
+            saved[obj] = nil
+        end
+    end
+    print("⚡ VENTIS: '" .. catName .. "' restaurada em " .. count .. " propriedade(s).")
+end
 
-workspace.DescendantAdded:Connect(function(obj)
+--======================================================
+-- LISTA DE CLASSES
+--======================================================
 
-    if states.ultra then
+local LIST = {
+    Decal=1, Texture=1, MeshPart=1, SpecialMesh=1,
+    SurfaceAppearance=1, SurfaceGui=1, ImageLabel=1, ImageButton=1, Sky=1,
+    Clouds=1, Shirt=1, Pants=1, ShirtGraphic=1,
+    ParticleEmitter=1, Trail=1, Beam=1, Fire=1, Smoke=1, Sparkles=1,
+    PointLight=1, SpotLight=1, SurfaceLight=1,
+    Atmosphere=1, BloomEffect=1, BlurEffect=1, ColorCorrectionEffect=1,
+    SunRaysEffect=1, DepthOfFieldEffect=1,
+}
 
-        task.defer(function()
+--======================================================
+-- KILL
+--======================================================
 
-            removeTextures(obj)
-            removeParticles(obj)
-            removeLights(obj)
-            lowMaterials(obj)
+local function kill(obj)
+    if not on or not obj or not obj.Parent then return end
+    local c = obj.ClassName
 
+    if c == "Decal" or c == "Texture" then
+        if not categories.textures then return end
+        set(obj, "Texture", "", "textures")
+        set(obj, "Transparency", 1, "textures")
+        return
+    end
+    if c == "MeshPart" then
+        if categories.textures then set(obj, "TextureID", "", "textures") end
+        if categories.shadows_material then
+            set(obj, "Material", Enum.Material.SmoothPlastic, "shadows_material")
+            set(obj, "Reflectance", 0, "shadows_material")
+            set(obj, "CastShadow", false, "shadows_material")
+        end
+        return
+    end
+    if c == "SpecialMesh" then
+        if not categories.textures then return end
+        set(obj, "TextureId", "", "textures")
+        set(obj, "MeshId", "", "textures")
+        return
+    end
+    if c == "SurfaceAppearance" then
+        if not categories.textures then return end
+        set(obj, "ColorMap", "", "textures")
+        set(obj, "NormalMap", "", "textures")
+        set(obj, "RoughnessMap", "", "textures")
+        set(obj, "MetalnessMap", "", "textures")
+        return
+    end
+    if c == "SurfaceGui" then
+        if not categories.gui_images then return end
+        set(obj, "Enabled", false, "gui_images")
+        return
+    end
+    if c == "ImageLabel" or c == "ImageButton" then
+        if not categories.gui_images then return end
+        set(obj, "ImageTransparency", 1, "gui_images")
+        set(obj, "BackgroundTransparency", 1, "gui_images")
+        return
+    end
+    if c == "Sky" then
+        if not categories.sky_atmosphere then return end
+        set(obj, "SkyboxBk", "", "sky_atmosphere") set(obj, "SkyboxDn", "", "sky_atmosphere")
+        set(obj, "SkyboxFt", "", "sky_atmosphere") set(obj, "SkyboxLf", "", "sky_atmosphere")
+        set(obj, "SkyboxRt", "", "sky_atmosphere") set(obj, "SkyboxUp", "", "sky_atmosphere")
+        set(obj, "StarCount", 0, "sky_atmosphere")
+        set(obj, "SunAngularSize", 0, "sky_atmosphere")
+        set(obj, "MoonAngularSize", 0, "sky_atmosphere")
+        return
+    end
+    if c == "Clouds" then
+        if not categories.sky_atmosphere then return end
+        set(obj, "Enabled", false, "sky_atmosphere")
+        return
+    end
+    if c == "ParticleEmitter" or c == "Trail" or c == "Beam" then
+        if not categories.particles then return end
+        set(obj, "Texture", "", "particles")
+        set(obj, "Enabled", false, "particles")
+        return
+    end
+    if c == "Fire" or c == "Smoke" or c == "Sparkles" then
+        if not categories.particles then return end
+        set(obj, "Enabled", false, "particles")
+        return
+    end
+    if c == "PointLight" or c == "SpotLight" or c == "SurfaceLight" then
+        if not categories.lights then return end
+        set(obj, "Enabled", false, "lights")
+        return
+    end
+    if c == "Atmosphere" then
+        if not categories.sky_atmosphere then return end
+        set(obj, "Density", 0, "sky_atmosphere")
+        set(obj, "Haze", 0, "sky_atmosphere")
+        set(obj, "Glare", 0, "sky_atmosphere")
+        return
+    end
+    if c == "BloomEffect" or c == "SunRaysEffect" or c == "ColorCorrectionEffect"
+        or c == "DepthOfFieldEffect" then
+        if not categories.post_effects then return end
+        set(obj, "Enabled", false, "post_effects")
+        return
+    end
+    if c == "BlurEffect" then
+        if obj.Name ~= "VentisMotionBlur" then
+            if not categories.post_effects then return end
+            set(obj, "Enabled", false, "post_effects")
+        end
+        return
+    end
+    if obj:IsA("BasePart") then
+        if not categories.shadows_material then return end
+        set(obj, "CastShadow", false, "shadows_material")
+        if obj.Material ~= Enum.Material.SmoothPlastic and obj.Material ~= Enum.Material.Plastic then
+            set(obj, "Material", Enum.Material.SmoothPlastic, "shadows_material")
+        end
+        set(obj, "Reflectance", 0, "shadows_material")
+    end
+end
+
+--======================================================
+-- GLOBAL KILL
+--======================================================
+
+local function globalKill()
+    if not on then return end
+
+    if categories.graphics_quality then
+        pcall(function()
+            UserSettings.GameSettings.GraphicsQuality = Enum.QualityLevel.Level1
         end)
-
     end
 
+    if categories.global_lighting then
+        set(Lighting, "GlobalShadows", false, "global_lighting")
+        set(Lighting, "ShadowSoftness", 0, "global_lighting")
+        set(Lighting, "Brightness", 2, "global_lighting")
+        set(Lighting, "Ambient", Color3.fromRGB(90, 90, 90), "global_lighting")
+        set(Lighting, "OutdoorAmbient", Color3.fromRGB(110, 110, 110), "global_lighting")
+        set(Lighting, "EnvironmentDiffuseScale", 0, "global_lighting")
+        set(Lighting, "EnvironmentSpecularScale", 0, "global_lighting")
+        set(Lighting, "FogStart", 9e9, "global_lighting")
+        set(Lighting, "FogEnd", 9e9, "global_lighting")
+    end
+
+    if categories.water_terrain then
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            pcall(function()
+                set(terrain, "WaterWaveSize", 0, "water_terrain")
+                set(terrain, "WaterWaveSpeed", 0, "water_terrain")
+                set(terrain, "WaterReflectance", 0, "water_terrain")
+                set(terrain, "WaterTransparency", 1, "water_terrain")
+                terrain.Decoration = false
+            end)
+        end
+    end
+end
+
+--======================================================
+-- LOCK LIGHTING
+--======================================================
+
+local lightingLock = false
+local function lockLighting()
+    if lightingLock then return end
+    lightingLock = true
+    Lighting:GetPropertyChangedSignal("Brightness"):Connect(function()
+        if on and categories.global_lighting and Lighting.Brightness ~= 2 then
+            set(Lighting, "Brightness", 2, "global_lighting")
+        end
+    end)
+    Lighting:GetPropertyChangedSignal("Ambient"):Connect(function()
+        if on and categories.global_lighting and Lighting.Ambient ~= Color3.fromRGB(90,90,90) then
+            set(Lighting, "Ambient", Color3.fromRGB(90,90,90), "global_lighting")
+        end
+    end)
+    Lighting:GetPropertyChangedSignal("OutdoorAmbient"):Connect(function()
+        if on and categories.global_lighting and Lighting.OutdoorAmbient ~= Color3.fromRGB(110,110,110) then
+            set(Lighting, "OutdoorAmbient", Color3.fromRGB(110,110,110), "global_lighting")
+        end
+    end)
+end
+
+--======================================================
+-- APPLY ALL
+--======================================================
+
+local BATCH = 400
+
+local function applyAll()
+    if not on or busy then return end
+    busy = true
+    generation += 1
+    local myGen = generation
+
+    task.spawn(function()
+        local roots = {
+            workspace,
+            playerGui,
+            Lighting,
+            game:GetService("ReplicatedStorage"),
+            game:GetService("StarterGui"),
+        }
+        local count = 0
+        for _, root in ipairs(roots) do
+            if root then
+                for _, obj in ipairs(root:GetDescendants()) do
+                    if not on or myGen ~= generation then busy = false ; return end
+                    kill(obj)
+                    count += 1
+                    if count % BATCH == 0 then task.wait() end
+                end
+            end
+        end
+        globalKill()
+        lockLighting()
+        busy = false
+    end)
+end
+
+--======================================================
+-- MOTION BLUR
+--======================================================
+
+local motionBlur = Lighting:FindFirstChild("VentisMotionBlur")
+if not motionBlur then
+    motionBlur = Instance.new("BlurEffect")
+    motionBlur.Name = "VentisMotionBlur"
+    motionBlur.Size = 0
+    motionBlur.Parent = Lighting
+end
+motionBlur.Enabled = categories.motion_blur
+
+local lastCFrame = workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new()
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    if not on or not categories.motion_blur then
+        lastCFrame = cam.CFrame
+        return
+    end
+    local delta = (cam.CFrame.LookVector - lastCFrame.LookVector).Magnitude
+    motionBlur.Size = math.clamp(delta * 10, 0, 6)
+    lastCFrame = cam.CFrame
 end)
 
---------------------------------------------------------
--- GUI
---------------------------------------------------------
+--======================================================
+-- HELPERS
+--======================================================
+
+local function corner(parent, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r or 8)
+    c.Parent = parent
+    return c
+end
+
+local function stroke(parent, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color or THEME.border
+    s.Thickness = thickness or 1
+    s.Transparency = transparency or 0
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Parent = parent
+    return s
+end
+
+local function gradient(parent, c1, c2, rot)
+    local g = Instance.new("UIGradient")
+    g.Color = ColorSequence.new(c1, c2)
+    g.Rotation = rot or 0
+    g.Parent = parent
+    return g
+end
+
+--======================================================
+-- SCREEN GUI
+--======================================================
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "VentisHubFPS"
+gui.Name = "VentisHub"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
 
---------------------------------------------------------
--- BOTÃO FLUTUANTE
---------------------------------------------------------
+--======================================================
+-- DIMENSÕES (compactas p/ mobile)
+--======================================================
 
-local floating = Instance.new("TextButton")
-floating.Size = UDim2.new(0, 58, 0, 58)
-floating.Position = UDim2.new(0, 18, 0.5, -29)
-floating.BackgroundColor3 = Color3.fromRGB(20,20,25)
-floating.BorderSizePixel = 0
-floating.Text = "⚡"
-floating.TextColor3 = Color3.fromRGB(255,255,255)
-floating.TextSize = 26
-floating.Font = Enum.Font.GothamBold
-floating.Parent = gui
+local HUB_W, HUB_H = 260, 400
 
-local floatCorner = Instance.new("UICorner")
-floatCorner.CornerRadius = UDim.new(1,0)
-floatCorner.Parent = floating
+--======================================================
+-- HUB
+--======================================================
 
-local floatStroke = Instance.new("UIStroke")
-floatStroke.Thickness = 2
-floatStroke.Color = Color3.fromRGB(80,80,95)
-floatStroke.Parent = floating
+local hub = Instance.new("Frame")
+hub.Name = "Hub"
+hub.AnchorPoint = Vector2.new(0.5, 0.5)
+hub.Position = UDim2.new(0.5, 0, 0.5, 0)
+hub.Size = UDim2.new(0, HUB_W, 0, HUB_H)
+hub.BackgroundColor3 = THEME.bg
+hub.BorderSizePixel = 0
+hub.ClipsDescendants = true
+hub.Parent = gui
 
---------------------------------------------------------
--- PAINEL
---------------------------------------------------------
+corner(hub, 12)
+stroke(hub, THEME.border, 1)
+gradient(hub, Color3.fromRGB(18,18,28), Color3.fromRGB(12,12,18), 90)
 
-local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 320, 0, 430)
-panel.Position = UDim2.new(0.5, -160, 0.5, -215)
-panel.BackgroundColor3 = Color3.fromRGB(13,13,17)
-panel.BorderSizePixel = 0
-panel.Parent = gui
+-- Sombra externa
+do
+    local sh = Instance.new("ImageLabel")
+    sh.Name = "HubShadow"
+    sh.AnchorPoint = Vector2.new(0.5, 0.5)
+    sh.Position = UDim2.fromScale(0.5, 0.5)
+    sh.Size = UDim2.new(1, 44, 1, 44)
+    sh.BackgroundTransparency = 1
+    sh.Image = SHADOW_IMG
+    sh.ImageColor3 = Color3.new(0, 0, 0)
+    sh.ImageTransparency = 0.4
+    sh.ScaleType = Enum.ScaleType.Slice
+    sh.SliceCenter = Rect.new(49, 49, 450, 450)
+    sh.ZIndex = hub.ZIndex - 1
+    sh.Parent = hub
+end
 
-local panelCorner = Instance.new("UICorner")
-panelCorner.CornerRadius = UDim.new(0,16)
-panelCorner.Parent = panel
-
-local panelStroke = Instance.new("UIStroke")
-panelStroke.Thickness = 1
-panelStroke.Color = Color3.fromRGB(50,50,60)
-panelStroke.Parent = panel
-
---------------------------------------------------------
--- CABEÇALHO
---------------------------------------------------------
+--======================================================
+-- HEADER (compacto)
+--======================================================
 
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1,0,0,65)
-header.BackgroundTransparency = 1
-header.Parent = panel
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 44)
+header.BackgroundColor3 = Color3.fromRGB(16, 16, 24)
+header.BorderSizePixel = 0
+header.Parent = hub
+corner(header, 12)
+
+local headerAccent = Instance.new("Frame")
+headerAccent.Size = UDim2.new(1, 0, 0, 2)
+headerAccent.BackgroundColor3 = THEME.accent
+headerAccent.BorderSizePixel = 0
+headerAccent.Parent = header
+gradient(headerAccent, THEME.accent, THEME.accent2, 0)
+
+local logo = Instance.new("Frame")
+logo.Size = UDim2.new(0, 24, 0, 24)
+logo.Position = UDim2.new(0, 10, 0.5, -12)
+logo.BackgroundColor3 = THEME.accent
+logo.BorderSizePixel = 0
+logo.Parent = header
+corner(logo, 7)
+gradient(logo, THEME.accent, THEME.accent2, 45)
+
+local logoIcon = Instance.new("TextLabel")
+logoIcon.Size = UDim2.new(1, 0, 1, 0)
+logoIcon.BackgroundTransparency = 1
+logoIcon.Text = "⚡"
+logoIcon.TextColor3 = Color3.new(1,1,1)
+logoIcon.TextSize = 15
+logoIcon.Font = Enum.Font.GothamBold
+logoIcon.Parent = logo
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,-70,0,35)
-title.Position = UDim2.new(0,18,0,7)
+title.Position = UDim2.new(0, 42, 0, 6)
+title.Size = UDim2.new(0, 150, 0, 15)
 title.BackgroundTransparency = 1
 title.Text = "VENTIS HUB"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.TextSize = 21
+title.TextColor3 = THEME.text
+title.TextSize = 13
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
 local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1,-70,0,20)
-subtitle.Position = UDim2.new(0,19,0,36)
+subtitle.Position = UDim2.new(0, 42, 0, 22)
+subtitle.Size = UDim2.new(0, 150, 0, 12)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "FPS BOOSTER  •  PERFORMANCE"
-subtitle.TextColor3 = Color3.fromRGB(125,125,140)
-subtitle.TextSize = 10
-subtitle.Font = Enum.Font.GothamMedium
+subtitle.Text = "Performance Suite • v18.1"
+subtitle.TextColor3 = THEME.textDim
+subtitle.TextSize = 9
+subtitle.Font = Enum.Font.Gotham
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 subtitle.Parent = header
 
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(0,36,0,36)
-close.Position = UDim2.new(1,-48,0,12)
-close.BackgroundColor3 = Color3.fromRGB(30,30,37)
-close.BorderSizePixel = 0
-close.Text = "×"
-close.TextColor3 = Color3.fromRGB(220,220,225)
-close.TextSize = 23
-close.Font = Enum.Font.GothamBold
-close.Parent = header
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 22, 0, 22)
+minBtn.Position = UDim2.new(1, -54, 0.5, -11)
+minBtn.BackgroundColor3 = THEME.bgRow
+minBtn.Text = "—"
+minBtn.TextColor3 = THEME.textDim
+minBtn.TextSize = 13
+minBtn.Font = Enum.Font.GothamBold
+minBtn.BorderSizePixel = 0
+minBtn.AutoButtonColor = false
+minBtn.Parent = header
+corner(minBtn, 6)
 
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0,10)
-closeCorner.Parent = close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 22, 0, 22)
+closeBtn.Position = UDim2.new(1, -30, 0.5, -11)
+closeBtn.BackgroundColor3 = THEME.bgRow
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = THEME.textDim
+closeBtn.TextSize = 11
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BorderSizePixel = 0
+closeBtn.AutoButtonColor = false
+closeBtn.Parent = header
+corner(closeBtn, 6)
 
---------------------------------------------------------
--- FPS DISPLAY
---------------------------------------------------------
+local function hover(btn, normal, hovered)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TWEEN_FAST, {BackgroundColor3 = hovered}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TWEEN_FAST, {BackgroundColor3 = normal}):Play()
+    end)
+end
+hover(minBtn, THEME.bgRow, THEME.border)
+hover(closeBtn, THEME.bgRow, THEME.danger)
 
-local fps = Instance.new("TextLabel")
-fps.Size = UDim2.new(1,-30,0,34)
-fps.Position = UDim2.new(0,15,0,68)
-fps.BackgroundColor3 = Color3.fromRGB(21,21,27)
-fps.BorderSizePixel = 0
-fps.Text = "FPS  •  --"
-fps.TextColor3 = Color3.fromRGB(90,255,130)
-fps.TextSize = 14
-fps.Font = Enum.Font.GothamBold
-fps.Parent = panel
+--======================================================
+-- STATUS BAR (compacto)
+--======================================================
 
-local fpsCorner = Instance.new("UICorner")
-fpsCorner.CornerRadius = UDim.new(0,9)
-fpsCorner.Parent = fps
+local statusBar = Instance.new("Frame")
+statusBar.Position = UDim2.new(0, 10, 0, 52)
+statusBar.Size = UDim2.new(1, -20, 0, 74)
+statusBar.BackgroundColor3 = THEME.bgPanel
+statusBar.BorderSizePixel = 0
+statusBar.Parent = hub
+corner(statusBar, 10)
+stroke(statusBar, THEME.border, 1)
 
---------------------------------------------------------
--- ÁREA DE BOTÕES
---------------------------------------------------------
+local fpsLabel = Instance.new("TextLabel")
+fpsLabel.Position = UDim2.new(0, 12, 0, 6)
+fpsLabel.Size = UDim2.new(0, 80, 0, 10)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Text = "FPS"
+fpsLabel.TextColor3 = THEME.textDim
+fpsLabel.TextSize = 9
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
+fpsLabel.Parent = statusBar
 
-local container = Instance.new("ScrollingFrame")
-container.Size = UDim2.new(1,-30,1,-120)
-container.Position = UDim2.new(0,15,0,112)
-container.BackgroundTransparency = 1
-container.BorderSizePixel = 0
-container.ScrollBarThickness = 3
-container.CanvasSize = UDim2.new(0,0,0,0)
-container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-container.Parent = panel
+local fpsValue = Instance.new("TextLabel")
+fpsValue.Position = UDim2.new(0, 10, 0, 16)
+fpsValue.Size = UDim2.new(0, 100, 0, 28)
+fpsValue.BackgroundTransparency = 1
+fpsValue.Text = "--"
+fpsValue.TextColor3 = THEME.accent
+fpsValue.TextSize = 26
+fpsValue.Font = Enum.Font.GothamBlack
+fpsValue.TextXAlignment = Enum.TextXAlignment.Left
+fpsValue.Parent = statusBar
 
-local list = Instance.new("UIListLayout")
-list.Padding = UDim.new(0,7)
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-list.Parent = container
+local fpsBarBg = Instance.new("Frame")
+fpsBarBg.Position = UDim2.new(0, 12, 0, 56)
+fpsBarBg.Size = UDim2.new(0, 118, 0, 3)
+fpsBarBg.BackgroundColor3 = THEME.bgRow
+fpsBarBg.BorderSizePixel = 0
+fpsBarBg.Parent = statusBar
+corner(fpsBarBg, 2)
 
---------------------------------------------------------
--- BOTÃO PADRÃO
---------------------------------------------------------
+local fpsBar = Instance.new("Frame")
+fpsBar.Size = UDim2.new(0, 0, 1, 0)
+fpsBar.BackgroundColor3 = THEME.accent
+fpsBar.BorderSizePixel = 0
+fpsBar.Parent = fpsBarBg
+corner(fpsBar, 2)
+gradient(fpsBar, THEME.accent, THEME.accent2, 0)
 
-local function createButton(text, callback)
+local pingLabel = Instance.new("TextLabel")
+pingLabel.AnchorPoint = Vector2.new(1, 0)
+pingLabel.Position = UDim2.new(1, -12, 0, 6)
+pingLabel.Size = UDim2.new(0, 70, 0, 10)
+pingLabel.BackgroundTransparency = 1
+pingLabel.Text = "PING"
+pingLabel.TextColor3 = THEME.textDim
+pingLabel.TextSize = 9
+pingLabel.Font = Enum.Font.GothamBold
+pingLabel.TextXAlignment = Enum.TextXAlignment.Right
+pingLabel.Parent = statusBar
 
-    local b = Instance.new("TextButton")
+local pingValue = Instance.new("TextLabel")
+pingValue.AnchorPoint = Vector2.new(1, 0)
+pingValue.Position = UDim2.new(1, -12, 0, 18)
+pingValue.Size = UDim2.new(0, 100, 0, 20)
+pingValue.BackgroundTransparency = 1
+pingValue.Text = "-- ms"
+pingValue.TextColor3 = THEME.text
+pingValue.TextSize = 15
+pingValue.Font = Enum.Font.GothamBold
+pingValue.TextXAlignment = Enum.TextXAlignment.Right
+pingValue.Parent = statusBar
 
-    b.Size = UDim2.new(1,0,0,40)
-    b.BackgroundColor3 = Color3.fromRGB(25,25,32)
-    b.BorderSizePixel = 0
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(235,235,240)
-    b.TextSize = 13
-    b.Font = Enum.Font.GothamSemibold
+-- Toggle master
+local toggleHolder = Instance.new("Frame")
+toggleHolder.AnchorPoint = Vector2.new(1, 1)
+toggleHolder.Position = UDim2.new(1, -12, 1, -8)
+toggleHolder.Size = UDim2.new(0, 68, 0, 22)
+toggleHolder.BackgroundColor3 = THEME.accent
+toggleHolder.BorderSizePixel = 0
+toggleHolder.Parent = statusBar
+corner(toggleHolder, 11)
+gradient(toggleHolder, THEME.accent, THEME.accent2, 45)
 
-    b.Parent = container
+local toggleKnob = Instance.new("Frame")
+toggleKnob.Size = UDim2.new(0, 16, 0, 16)
+toggleKnob.Position = UDim2.new(1, -19, 0.5, -8)
+toggleKnob.BackgroundColor3 = Color3.new(1,1,1)
+toggleKnob.BorderSizePixel = 0
+toggleKnob.Parent = toggleHolder
+corner(toggleKnob, 8)
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,9)
-    corner.Parent = b
+local toggleText = Instance.new("TextLabel")
+toggleText.Position = UDim2.new(0, 8, 0, 0)
+toggleText.Size = UDim2.new(0, 44, 1, 0)
+toggleText.BackgroundTransparency = 1
+toggleText.Text = "ON"
+toggleText.TextColor3 = Color3.fromRGB(10, 30, 20)
+toggleText.TextSize = 10
+toggleText.Font = Enum.Font.GothamBlack
+toggleText.TextXAlignment = Enum.TextXAlignment.Left
+toggleText.Parent = toggleHolder
 
-    b.MouseButton1Click:Connect(callback)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+toggleBtn.BackgroundTransparency = 1
+toggleBtn.Text = ""
+toggleBtn.Parent = toggleHolder
 
-    return b
+--======================================================
+-- CATEGORIAS
+--======================================================
+
+local catHeader = Instance.new("TextLabel")
+catHeader.Position = UDim2.new(0, 14, 0, 132)
+catHeader.Size = UDim2.new(1, -28, 0, 12)
+catHeader.BackgroundTransparency = 1
+catHeader.Text = "MÓDULOS"
+catHeader.TextColor3 = THEME.textDim
+catHeader.TextSize = 9
+catHeader.Font = Enum.Font.GothamBold
+catHeader.TextXAlignment = Enum.TextXAlignment.Left
+catHeader.Parent = hub
+
+local scroll = Instance.new("ScrollingFrame")
+scroll.Position = UDim2.new(0, 10, 0, 148)
+scroll.Size = UDim2.new(1, -20, 1, -164)
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 3
+scroll.ScrollBarImageColor3 = THEME.borderLight
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.Parent = hub
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 3)
+listLayout.Parent = scroll
+
+--======================================================
+-- SWITCH COMPONENT
+--======================================================
+
+local function makeSwitch(parent, initial, callback)
+    local pill = Instance.new("TextButton")
+    pill.Size = UDim2.new(0, 34, 0, 18)
+    pill.BackgroundColor3 = initial and THEME.accent or THEME.bgRow
+    pill.Text = ""
+    pill.BorderSizePixel = 0
+    pill.AutoButtonColor = false
+    pill.Parent = parent
+    corner(pill, 9)
+
+    local strokeObj, gradObj
+    if initial then
+        gradObj = gradient(pill, THEME.accent, THEME.accent2, 45)
+    else
+        strokeObj = stroke(pill, THEME.border, 1)
+    end
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = initial and UDim2.new(0, 18, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+    knob.BackgroundColor3 = Color3.new(1,1,1)
+    knob.BorderSizePixel = 0
+    knob.Parent = pill
+    corner(knob, 7)
+
+    local state = initial
+
+    local function apply(v)
+        state = v
+        if v then
+            pill.BackgroundColor3 = THEME.accent
+            if not gradObj then gradObj = gradient(pill, THEME.accent, THEME.accent2, 45) end
+            if strokeObj then strokeObj:Destroy() ; strokeObj = nil end
+        else
+            pill.BackgroundColor3 = THEME.bgRow
+            if gradObj then gradObj:Destroy() ; gradObj = nil end
+            if not strokeObj then strokeObj = stroke(pill, THEME.border, 1) end
+        end
+        TweenService:Create(knob, TWEEN_FAST, {
+            Position = v and UDim2.new(0, 18, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+        }):Play()
+    end
+
+    pill.MouseButton1Click:Connect(function()
+        apply(not state)
+        callback(state)
+    end)
+
+    return apply
 end
 
---------------------------------------------------------
--- BOTÕES
---------------------------------------------------------
-
-local ultraButton
-
-ultraButton = createButton("🚀  ULTRA FPS          [ OFF ]", function()
-
-    states.ultra = not states.ultra
-
-    if states.ultra then
-
-        ultraFPS()
-        ultraButton.Text = "🚀  ULTRA FPS          [ ON ]"
-
-    else
-
-        restoreAll()
-        ultraButton.Text = "🚀  ULTRA FPS          [ OFF ]"
-
-    end
-
-end)
-
-createButton("🖼️  REMOVER TEXTURAS", function()
-
-    states.textures = not states.textures
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        removeTextures(obj)
-    end
-
-end)
-
-createButton("✨  DESATIVAR PARTÍCULAS", function()
-
-    states.particles = not states.particles
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        removeParticles(obj)
-    end
-
-end)
-
-createButton("💡  DESATIVAR LUZES", function()
-
-    states.lights = not states.lights
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        removeLights(obj)
-    end
-
-end)
-
-createButton("🌑  SOMBRAS OFF", function()
-
-    states.shadows = not states.shadows
-
-    shadowsOFF()
-
-end)
-
-createButton("🌫️  FOG OFF", function()
-
-    fogOFF()
-
-end)
-
-createButton("🎨  PÓS-EFEITOS OFF", function()
-
-    states.effects = not states.effects
-
-    effectsOFF()
-
-end)
-
-createButton("💧  ÁGUA LOW", function()
-
-    states.water = not states.water
-
-    waterOFF()
-
-end)
-
-createButton("🧱  MATERIAIS LOW", function()
-
-    states.materials = not states.materials
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        lowMaterials(obj)
-    end
-
-end)
-
-createButton("🔄  RESTAURAR GRÁFICOS", function()
-
-    restoreAll()
-
-    for key in pairs(states) do
-        states[key] = false
-    end
-
-    states.fps = true
-
-    ultraButton.Text = "🚀  ULTRA FPS          [ OFF ]"
-
-end)
-
---------------------------------------------------------
--- ABRIR / FECHAR
---------------------------------------------------------
-
-floating.MouseButton1Click:Connect(function()
-
-    panel.Visible = not panel.Visible
-
-end)
-
-close.MouseButton1Click:Connect(function()
-
-    panel.Visible = false
-
-end)
-
---------------------------------------------------------
--- ARRASTAR
---------------------------------------------------------
-
-local dragging = false
-local dragStart
-local startPosition
-
-header.InputBegan:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-
-        dragging = true
-        dragStart = input.Position
-        startPosition = panel.Position
-
-    end
-
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-    if dragging then
-
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch then
-
-            local delta = input.Position - dragStart
-
-            panel.Position = UDim2.new(
-                startPosition.X.Scale,
-                startPosition.X.Offset + delta.X,
-                startPosition.Y.Scale,
-                startPosition.Y.Offset + delta.Y
-            )
-
+--======================================================
+-- LINHAS DE CATEGORIA
+--======================================================
+
+for i, key in ipairs(CATEGORY_ORDER) do
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 28)
+    row.BackgroundColor3 = THEME.bgRow
+    row.BorderSizePixel = 0
+    row.LayoutOrder = i
+    row.Parent = scroll
+    corner(row, 7)
+    stroke(row, THEME.border, 1, 0.4)
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 5, 0, 5)
+    dot.Position = UDim2.new(0, 3, 0.5, -2.5)
+    dot.BackgroundColor3 = THEME.accent
+    dot.BorderSizePixel = 0
+    dot.Parent = row
+    corner(dot, 3)
+
+    local rowLabel = Instance.new("TextLabel")
+    rowLabel.Position = UDim2.new(0, 14, 0, 0)
+    rowLabel.Size = UDim2.new(1, -58, 1, 0)
+    rowLabel.BackgroundTransparency = 1
+    rowLabel.Text = CATEGORY_LABEL[key]
+    rowLabel.TextColor3 = THEME.text
+    rowLabel.TextSize = 11
+    rowLabel.Font = Enum.Font.Gotham
+    rowLabel.TextXAlignment = Enum.TextXAlignment.Left
+    rowLabel.Parent = row
+
+    local swHolder = Instance.new("Frame")
+    swHolder.AnchorPoint = Vector2.new(1, 0.5)
+    swHolder.Position = UDim2.new(1, -8, 0.5, 0)
+    swHolder.Size = UDim2.new(0, 34, 0, 18)
+    swHolder.BackgroundTransparency = 1
+    swHolder.Parent = row
+
+    makeSwitch(swHolder, categories[key], function(state)
+        categories[key] = state
+        if state then
+            if key == "motion_blur" then motionBlur.Enabled = true end
+            if on then applyAll() end
+        else
+            if key == "motion_blur" then
+                motionBlur.Enabled = false
+                motionBlur.Size = 0
+            else
+                restoreCategory(key)
+            end
         end
+    end)
 
+    row.MouseEnter:Connect(function()
+        TweenService:Create(row, TWEEN_FAST, {BackgroundColor3 = THEME.bgRowHover}):Play()
+    end)
+    row.MouseLeave:Connect(function()
+        TweenService:Create(row, TWEEN_FAST, {BackgroundColor3 = THEME.bgRow}):Play()
+    end)
+end
+
+--======================================================
+-- DRAG DO HUB (pelo header)
+--======================================================
+
+do
+    local dragging, dragStart, startPos
+    local function beginDrag(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = hub.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
     end
+    header.InputBegan:Connect(beginDrag)
+    UserInput.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            hub.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
 
+--======================================================
+-- BOLINHA FLUTUANTE (FAB)
+--======================================================
+
+local ORB_SIZE = 46
+
+local orb = Instance.new("TextButton")
+orb.Name = "VentisOrb"
+orb.AnchorPoint = Vector2.new(0.5, 0.5)
+orb.Position = UDim2.new(1, -50, 0.5, 0)   -- colada na direita
+orb.Size = UDim2.new(0, ORB_SIZE, 0, ORB_SIZE)
+orb.BackgroundColor3 = THEME.accent
+orb.Text = "⚡"
+orb.TextColor3 = Color3.new(1,1,1)
+orb.TextSize = 22
+orb.Font = Enum.Font.GothamBold
+orb.BorderSizePixel = 0
+orb.AutoButtonColor = false
+orb.Visible = false                      -- começa escondida
+orb.Parent = gui
+corner(orb, ORB_SIZE / 2)
+stroke(orb, Color3.fromRGB(0, 255, 160), 1.5, 0.3)
+gradient(orb, THEME.accent, THEME.accent2, 135)
+
+-- sombra/pulso
+task.spawn(function()
+    while true do
+        if orb.Visible then
+            TweenService:Create(orb, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                Size = UDim2.new(0, ORB_SIZE + 4, 0, ORB_SIZE + 4)
+            }):Play()
+        end
+        task.wait(3)
+    end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-
-        dragging = false
-
-    end
-
+-- hover
+orb.MouseEnter:Connect(function()
+    TweenService:Create(orb, TWEEN_FAST, {Size = UDim2.new(0, ORB_SIZE + 6, 0, ORB_SIZE + 6)}):Play()
+end)
+orb.MouseLeave:Connect(function()
+    TweenService:Create(orb, TWEEN_FAST, {Size = UDim2.new(0, ORB_SIZE, 0, ORB_SIZE)}):Play()
 end)
 
---------------------------------------------------------
--- FPS COUNTER
---------------------------------------------------------
+-- drag da orb (com detecção de clique vs arrasto)
+do
+    local dragging, dragStart, startPos, moved
+    local MOVE_THRESHOLD = 6
 
-local frames = 0
-local last = os.clock()
+    orb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            moved = false
+            dragStart = input.Position
+            startPos = orb.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInput.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            if math.abs(delta.X) > MOVE_THRESHOLD or math.abs(delta.Y) > MOVE_THRESHOLD then
+                moved = true
+            end
+            if moved then
+                orb.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end
+    end)
+
+    orb.MouseButton1Click:Connect(function()
+        if moved then return end   -- foi arrasto, não clique
+        -- abre o hub
+        orb.Visible = false
+        hub.Visible = true
+        hub.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(hub, TWEEN_BACK, {
+            Size = UDim2.new(0, HUB_W, 0, HUB_H)
+        }):Play()
+    end)
+end
+
+--======================================================
+-- MINIMIZAR / FECHAR
+--======================================================
+
+local minimized = false
+local currentFullH = HUB_H
+
+minBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    TweenService:Create(hub, TWEEN_MED, {
+        Size = minimized and UDim2.new(0, HUB_W, 0, 44) or UDim2.new(0, HUB_W, 0, currentFullH)
+    }):Play()
+    minBtn.Text = minimized and "+" or "—"
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(hub, TWEEN_MED, {
+        Size = UDim2.new(0, 0, 0, 0)
+    }):Play()
+    task.wait(0.28)
+    hub.Visible = false
+    -- reseta tamanho interno pra quando reabrir
+    hub.Size = UDim2.new(0, HUB_W, 0, HUB_H)
+    orb.Visible = true
+end)
+
+--======================================================
+-- ON/OFF MASTER
+--======================================================
+
+local function setMasterState(newState)
+    if busy then return end
+    on = newState
+
+    if on then
+        TweenService:Create(toggleHolder, TWEEN_FAST, {BackgroundColor3 = THEME.accent}):Play()
+        if not toggleHolder:FindFirstChildOfClass("UIGradient") then
+            gradient(toggleHolder, THEME.accent, THEME.accent2, 45)
+        end
+        TweenService:Create(toggleKnob, TWEEN_FAST, {Position = UDim2.new(1, -19, 0.5, -8)}):Play()
+        toggleText.Text = "ON"
+        motionBlur.Enabled = categories.motion_blur
+        applyAll()
+        print("⚡ VENTIS: ON")
+    else
+        TweenService:Create(toggleHolder, TWEEN_FAST, {BackgroundColor3 = THEME.bgRow}):Play()
+        local g = toggleHolder:FindFirstChildOfClass("UIGradient")
+        if g then g:Destroy() end
+        TweenService:Create(toggleKnob, TWEEN_FAST, {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
+        toggleText.Text = "OFF"
+        motionBlur.Enabled = false
+        motionBlur.Size = 0
+        restore()
+        print("⚡ VENTIS: OFF")
+    end
+end
+
+toggleBtn.MouseButton1Click:Connect(function() setMasterState(not on) end)
+
+--======================================================
+-- HOOKS
+--======================================================
+
+local function hook(desc)
+    if not on then return end
+    if not LIST[desc.ClassName] and not desc:IsA("BasePart") then return end
+    task.defer(kill, desc)
+end
+game.DescendantAdded:Connect(hook)
+
+--======================================================
+-- FPS / PING
+--======================================================
+
+local frameTimes = {}
+local function fpsColor(fps)
+    if fps >= 50 then return THEME.success
+    elseif fps >= 30 then return THEME.warn
+    else return THEME.danger end
+end
 
 RunService.RenderStepped:Connect(function()
-
-    frames += 1
-
-    local now = os.clock()
-
-    if now - last >= 1 then
-
-        fps.Text = "FPS  •  " .. frames
-
-        frames = 0
-        last = now
-
+    local now = tick()
+    table.insert(frameTimes, now)
+    while #frameTimes > 0 and frameTimes[1] < now - 1 do
+        table.remove(frameTimes, 1)
     end
-
+    local fps = #frameTimes
+    fpsValue.Text = tostring(fps)
+    local col = fpsColor(fps)
+    fpsValue.TextColor3 = col
+    fpsBar.BackgroundColor3 = col
+    local pct = math.clamp(fps / 120, 0, 1)
+    TweenService:Create(fpsBar, TWEEN_FAST, {Size = UDim2.new(pct, 0, 1, 0)}):Play()
 end)
 
---------------------------------------------------------
--- FINAL
---------------------------------------------------------
+task.spawn(function()
+    while true do
+        local ok, ping = pcall(function()
+            return math.floor(player:GetNetworkPing() * 1000)
+        end)
+        if ok and ping then
+            pingValue.Text = ping .. " ms"
+            if ping < 80 then pingValue.TextColor3 = THEME.success
+            elseif ping < 160 then pingValue.TextColor3 = THEME.warn
+            else pingValue.TextColor3 = THEME.danger end
+        end
+        task.wait(1)
+    end
+end)
 
-print("⚡ VENTIS HUB FPS BOOSTER carregado!")
+--======================================================
+-- AUTO-REAPLICAÇÃO
+--======================================================
+
+task.spawn(function()
+    while true do
+        task.wait(60)
+        if on then
+            print("⚡ VENTIS: reaplicando (auto, 1min)...")
+            applyAll()
+        end
+        local removed = cleanupSaved()
+        if removed > 0 then
+            print("⚡ VENTIS: limpou " .. removed .. " entradas.")
+        end
+    end
+end)
+
+--======================================================
+-- INICIALIZAÇÃO
+--======================================================
+
+if on then applyAll() end
+
+print("==============================================")
+print("⚡ VENTIS HUB V18.1 — MOBILE-FRIENDLY")
+print("Feche com ✕ → abre uma bolinha verde flutuante.")
+print("Arraste a bolinha pra onde quiser, clique pra reabrir.")
+print("==============================================")
