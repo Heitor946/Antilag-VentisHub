@@ -1,19 +1,18 @@
 --[[
 ========================================================
-        VENTIS HUB — V18.1 MOBILE-FRIENDLY EDITION
-     Extreme Performance Suite • Premium UI • v18.1
+        VENTIS HUB — V18.1 RETRO ADMIN PANEL EDITION
+     Extreme Performance Suite • Win95 Look • v18.1r
 ========================================================
-  • Layout compacto (cabe em telas de celular)
-  • Bolinha flutuante para reabrir sem reexecutar
-  • Toggles modernos + FPS com cor dinâmica
-  • Drag correto, minimizar, fechar
+  • Visual retrô (bevels, title bar gradiente, fonte Code)
+  • Toda a lógica original preservada
+  • Checkboxes verdes estilo Admin Panel clássico
+  • Orb flutuante agora é mini title bar retrô
 ========================================================
 ]]
 
 --======================================================
 -- SERVIÇOS
 --======================================================
-
 local Players      = game:GetService("Players")
 local RunService   = game:GetService("RunService")
 local Lighting     = game:GetService("Lighting")
@@ -25,35 +24,35 @@ local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 --======================================================
--- TEMA
+-- TEMA RETRÔ
 --======================================================
-
 local THEME = {
-    bg           = Color3.fromRGB(13, 13, 20),
-    bgPanel      = Color3.fromRGB(20, 20, 30),
-    bgRow        = Color3.fromRGB(26, 26, 38),
-    bgRowHover   = Color3.fromRGB(34, 34, 50),
-    border       = Color3.fromRGB(42, 42, 60),
-    borderLight  = Color3.fromRGB(58, 58, 82),
-    text         = Color3.fromRGB(240, 240, 255),
-    textDim      = Color3.fromRGB(140, 140, 175),
-    accent       = Color3.fromRGB(0, 220, 130),
-    accent2      = Color3.fromRGB(0, 180, 255),
-    danger       = Color3.fromRGB(240, 70, 90),
-    warn         = Color3.fromRGB(255, 190, 60),
-    success      = Color3.fromRGB(0, 220, 130),
+    face        = Color3.fromRGB(192, 192, 192),
+    faceLight   = Color3.fromRGB(224, 224, 224),
+    faceDark    = Color3.fromRGB(128, 128, 128),
+    inset       = Color3.fromRGB(150, 150, 150),
+    border      = Color3.fromRGB(0, 0, 0),
+    bevelHi     = Color3.fromRGB(255, 255, 255),
+    bevelLo     = Color3.fromRGB(80, 80, 80),
+    text        = Color3.fromRGB(16, 16, 16),
+    textDim     = Color3.fromRGB(70, 70, 70),
+    textLight   = Color3.fromRGB(245, 245, 245),
+    titleA      = Color3.fromRGB(20, 20, 90),
+    titleB      = Color3.fromRGB(110, 110, 210),
+    accentGreen = Color3.fromRGB(0, 160, 60),
+    accentGreenD= Color3.fromRGB(0, 100, 40),
+    danger      = Color3.fromRGB(200, 32, 32),
+    dangerHi    = Color3.fromRGB(255, 130, 130),
+    yellow      = Color3.fromRGB(255, 220, 40),
 }
 
 local TWEEN_FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
 local TWEEN_MED  = TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 local TWEEN_BACK = TweenInfo.new(0.35, Enum.EasingStyle.Back,  Enum.EasingDirection.Out)
 
-local SHADOW_IMG = "rbxassetid://6014261993"
-
 --======================================================
 -- ESTADO
 --======================================================
-
 local on    = true
 local busy  = false
 local generation = 0
@@ -108,7 +107,6 @@ end
 --======================================================
 -- SALVAR / RESTAURAR
 --======================================================
-
 local function save(obj, prop, category)
     local t = saved[obj]
     if not t then t = {} ; saved[obj] = t end
@@ -159,7 +157,6 @@ end
 --======================================================
 -- LISTA DE CLASSES
 --======================================================
-
 local LIST = {
     Decal=1, Texture=1, MeshPart=1, SpecialMesh=1,
     SurfaceAppearance=1, SurfaceGui=1, ImageLabel=1, ImageButton=1, Sky=1,
@@ -173,7 +170,6 @@ local LIST = {
 --======================================================
 -- KILL
 --======================================================
-
 local function kill(obj)
     if not on or not obj or not obj.Parent then return end
     local c = obj.ClassName
@@ -282,7 +278,6 @@ end
 --======================================================
 -- GLOBAL KILL
 --======================================================
-
 local function globalKill()
     if not on then return end
 
@@ -321,7 +316,6 @@ end
 --======================================================
 -- LOCK LIGHTING
 --======================================================
-
 local lightingLock = false
 local function lockLighting()
     if lightingLock then return end
@@ -346,7 +340,6 @@ end
 --======================================================
 -- APPLY ALL
 --======================================================
-
 local BATCH = 400
 
 local function applyAll()
@@ -383,7 +376,6 @@ end
 --======================================================
 -- MOTION BLUR
 --======================================================
-
 local motionBlur = Lighting:FindFirstChild("VentisMotionBlur")
 if not motionBlur then
     motionBlur = Instance.new("BlurEffect")
@@ -407,14 +399,45 @@ RunService.RenderStepped:Connect(function()
 end)
 
 --======================================================
--- HELPERS
+-- HELPERS RETRÔ
 --======================================================
+local function bevel(parent, mode, thickness)
+    thickness = thickness or 1
+    local hi, lo
+    if mode == "raised" then hi, lo = THEME.bevelHi, THEME.bevelLo
+    else                     hi, lo = THEME.bevelLo, THEME.bevelHi end
 
-local function corner(parent, r)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, r or 8)
-    c.Parent = parent
-    return c
+    local top = Instance.new("Frame")
+    top.Size = UDim2.new(1, 0, 0, thickness)
+    top.BackgroundColor3 = hi
+    top.BorderSizePixel = 0
+    top.ZIndex = 2
+    top.Parent = parent
+
+    local left = Instance.new("Frame")
+    left.Size = UDim2.new(0, thickness, 1, 0)
+    left.BackgroundColor3 = hi
+    left.BorderSizePixel = 0
+    left.ZIndex = 2
+    left.Parent = parent
+
+    local bottom = Instance.new("Frame")
+    bottom.Size = UDim2.new(1, 0, 0, thickness)
+    bottom.Position = UDim2.new(0, 0, 1, -thickness)
+    bottom.BackgroundColor3 = lo
+    bottom.BorderSizePixel = 0
+    bottom.ZIndex = 2
+    bottom.Parent = parent
+
+    local right = Instance.new("Frame")
+    right.Size = UDim2.new(0, thickness, 1, 0)
+    right.Position = UDim2.new(1, -thickness, 0, 0)
+    right.BackgroundColor3 = lo
+    right.BorderSizePixel = 0
+    right.ZIndex = 2
+    right.Parent = parent
+
+    return {top=top, left=left, bottom=bottom, right=right}
 end
 
 local function stroke(parent, color, thickness, transparency)
@@ -427,18 +450,52 @@ local function stroke(parent, color, thickness, transparency)
     return s
 end
 
-local function gradient(parent, c1, c2, rot)
-    local g = Instance.new("UIGradient")
-    g.Color = ColorSequence.new(c1, c2)
-    g.Rotation = rot or 0
-    g.Parent = parent
-    return g
+local function retroButton(parent, size, position, text, colorOverride)
+    local btn = Instance.new("TextButton")
+    btn.Size = size
+    btn.Position = position
+    btn.BackgroundColor3 = colorOverride or THEME.face
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.Text = ""
+    btn.Parent = parent
+
+    stroke(btn, THEME.border, 2)
+    local bev = bevel(btn, "raised", 1)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = THEME.text
+    label.Font = Enum.Font.Code
+    label.TextSize = 13
+    label.ZIndex = 3
+    label.Parent = btn
+
+    btn.MouseButton1Down:Connect(function()
+        btn.BackgroundColor3 = THEME.faceDark
+        bev.top.BackgroundColor3 = THEME.bevelLo
+        bev.left.BackgroundColor3 = THEME.bevelLo
+        bev.bottom.BackgroundColor3 = THEME.bevelHi
+        bev.right.BackgroundColor3 = THEME.bevelHi
+    end)
+    local function restore()
+        btn.BackgroundColor3 = colorOverride or THEME.face
+        bev.top.BackgroundColor3 = THEME.bevelHi
+        bev.left.BackgroundColor3 = THEME.bevelHi
+        bev.bottom.BackgroundColor3 = THEME.bevelLo
+        bev.right.BackgroundColor3 = THEME.bevelLo
+    end
+    btn.MouseButton1Up:Connect(restore)
+    btn.MouseLeave:Connect(restore)
+
+    return btn, label
 end
 
 --======================================================
 -- SCREEN GUI
 --======================================================
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "VentisHub"
 gui.ResetOnSpawn = false
@@ -447,380 +504,298 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
 
 --======================================================
--- DIMENSÕES (compactas p/ mobile)
+-- DIMENSÕES
 --======================================================
-
-local HUB_W, HUB_H = 260, 400
+local HUB_W, HUB_H = 280, 420
+local TITLE_H = 22
 
 --======================================================
 -- HUB
 --======================================================
-
 local hub = Instance.new("Frame")
 hub.Name = "Hub"
 hub.AnchorPoint = Vector2.new(0.5, 0.5)
 hub.Position = UDim2.new(0.5, 0, 0.5, 0)
 hub.Size = UDim2.new(0, HUB_W, 0, HUB_H)
-hub.BackgroundColor3 = THEME.bg
+hub.BackgroundColor3 = THEME.face
 hub.BorderSizePixel = 0
 hub.ClipsDescendants = true
 hub.Parent = gui
 
-corner(hub, 12)
-stroke(hub, THEME.border, 1)
-gradient(hub, Color3.fromRGB(18,18,28), Color3.fromRGB(12,12,18), 90)
-
--- Sombra externa
-do
-    local sh = Instance.new("ImageLabel")
-    sh.Name = "HubShadow"
-    sh.AnchorPoint = Vector2.new(0.5, 0.5)
-    sh.Position = UDim2.fromScale(0.5, 0.5)
-    sh.Size = UDim2.new(1, 44, 1, 44)
-    sh.BackgroundTransparency = 1
-    sh.Image = SHADOW_IMG
-    sh.ImageColor3 = Color3.new(0, 0, 0)
-    sh.ImageTransparency = 0.4
-    sh.ScaleType = Enum.ScaleType.Slice
-    sh.SliceCenter = Rect.new(49, 49, 450, 450)
-    sh.ZIndex = hub.ZIndex - 1
-    sh.Parent = hub
-end
+stroke(hub, THEME.border, 2)
+local hubInner = Instance.new("Frame")
+hubInner.Size = UDim2.new(1, -4, 1, -4)
+hubInner.Position = UDim2.new(0, 2, 0, 2)
+hubInner.BackgroundTransparency = 1
+hubInner.Parent = hub
+stroke(hubInner, THEME.bevelHi, 1)
 
 --======================================================
--- HEADER (compacto)
+-- HEADER
 --======================================================
-
 local header = Instance.new("Frame")
 header.Name = "Header"
-header.Size = UDim2.new(1, 0, 0, 44)
-header.BackgroundColor3 = Color3.fromRGB(16, 16, 24)
+header.Position = UDim2.new(0, 3, 0, 3)
+header.Size = UDim2.new(1, -6, 0, TITLE_H)
+header.BackgroundColor3 = THEME.titleA
 header.BorderSizePixel = 0
+header.Active = true
 header.Parent = hub
-corner(header, 12)
 
-local headerAccent = Instance.new("Frame")
-headerAccent.Size = UDim2.new(1, 0, 0, 2)
-headerAccent.BackgroundColor3 = THEME.accent
-headerAccent.BorderSizePixel = 0
-headerAccent.Parent = header
-gradient(headerAccent, THEME.accent, THEME.accent2, 0)
-
-local logo = Instance.new("Frame")
-logo.Size = UDim2.new(0, 24, 0, 24)
-logo.Position = UDim2.new(0, 10, 0.5, -12)
-logo.BackgroundColor3 = THEME.accent
-logo.BorderSizePixel = 0
-logo.Parent = header
-corner(logo, 7)
-gradient(logo, THEME.accent, THEME.accent2, 45)
+local headerGrad = Instance.new("UIGradient")
+headerGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0.00, THEME.titleA),
+    ColorSequenceKeypoint.new(0.45, THEME.titleB),
+    ColorSequenceKeypoint.new(1.00, THEME.titleA),
+}
+headerGrad.Parent = header
 
 local logoIcon = Instance.new("TextLabel")
-logoIcon.Size = UDim2.new(1, 0, 1, 0)
+logoIcon.Position = UDim2.new(0, 4, 0, 0)
+logoIcon.Size = UDim2.new(0, 20, 1, 0)
 logoIcon.BackgroundTransparency = 1
 logoIcon.Text = "⚡"
-logoIcon.TextColor3 = Color3.new(1,1,1)
-logoIcon.TextSize = 15
+logoIcon.TextColor3 = THEME.yellow
+logoIcon.TextSize = 13
 logoIcon.Font = Enum.Font.GothamBold
-logoIcon.Parent = logo
+logoIcon.ZIndex = 3
+logoIcon.Parent = header
 
 local title = Instance.new("TextLabel")
-title.Position = UDim2.new(0, 42, 0, 6)
-title.Size = UDim2.new(0, 150, 0, 15)
+title.Position = UDim2.new(0, 22, 0, 0)
+title.Size = UDim2.new(1, -70, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "VENTIS HUB"
-title.TextColor3 = THEME.text
+title.Text = "VENTIS HUB  v18.1"
+title.TextColor3 = THEME.textLight
 title.TextSize = 13
-title.Font = Enum.Font.GothamBold
+title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 3
 title.Parent = header
 
-local subtitle = Instance.new("TextLabel")
-subtitle.Position = UDim2.new(0, 42, 0, 22)
-subtitle.Size = UDim2.new(0, 150, 0, 12)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Performance Suite • v18.1"
-subtitle.TextColor3 = THEME.textDim
-subtitle.TextSize = 9
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.Parent = header
+local minBtn, minLbl = retroButton(header,
+    UDim2.new(0, 18, 0, 18),
+    UDim2.new(1, -46, 0, 2),
+    "—"
+)
+minBtn.ZIndex = 4
+minLbl.TextSize = 12
+minLbl.TextColor3 = THEME.text
 
-local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 22, 0, 22)
-minBtn.Position = UDim2.new(1, -54, 0.5, -11)
-minBtn.BackgroundColor3 = THEME.bgRow
-minBtn.Text = "—"
-minBtn.TextColor3 = THEME.textDim
-minBtn.TextSize = 13
-minBtn.Font = Enum.Font.GothamBold
-minBtn.BorderSizePixel = 0
-minBtn.AutoButtonColor = false
-minBtn.Parent = header
-corner(minBtn, 6)
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 22, 0, 22)
-closeBtn.Position = UDim2.new(1, -30, 0.5, -11)
-closeBtn.BackgroundColor3 = THEME.bgRow
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = THEME.textDim
-closeBtn.TextSize = 11
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.BorderSizePixel = 0
-closeBtn.AutoButtonColor = false
-closeBtn.Parent = header
-corner(closeBtn, 6)
-
-local function hover(btn, normal, hovered)
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TWEEN_FAST, {BackgroundColor3 = hovered}):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TWEEN_FAST, {BackgroundColor3 = normal}):Play()
-    end)
-end
-hover(minBtn, THEME.bgRow, THEME.border)
-hover(closeBtn, THEME.bgRow, THEME.danger)
+local closeBtn, closeLbl = retroButton(header,
+    UDim2.new(0, 18, 0, 18),
+    UDim2.new(1, -24, 0, 2),
+    "✕"
+)
+closeBtn.ZIndex = 4
+closeLbl.ZIndex = 5
+closeLbl.TextSize = 12
+closeLbl.TextColor3 = THEME.danger
 
 --======================================================
--- STATUS BAR (compacto)
+-- PAINEL DE STATUS
 --======================================================
+local statusOuter = Instance.new("Frame")
+statusOuter.Position = UDim2.new(0, 8, 0, 30)
+statusOuter.Size = UDim2.new(1, -16, 0, 84)
+statusOuter.BackgroundColor3 = THEME.face
+statusOuter.BorderSizePixel = 0
+statusOuter.Parent = hub
+stroke(statusOuter, THEME.border, 2)
 
-local statusBar = Instance.new("Frame")
-statusBar.Position = UDim2.new(0, 10, 0, 52)
-statusBar.Size = UDim2.new(1, -20, 0, 74)
-statusBar.BackgroundColor3 = THEME.bgPanel
-statusBar.BorderSizePixel = 0
-statusBar.Parent = hub
-corner(statusBar, 10)
-stroke(statusBar, THEME.border, 1)
+local statusInner = Instance.new("Frame")
+statusInner.Position = UDim2.new(0, 3, 0, 3)
+statusInner.Size = UDim2.new(1, -6, 1, -6)
+statusInner.BackgroundColor3 = THEME.inset
+statusInner.BorderSizePixel = 0
+statusInner.Parent = statusOuter
+bevel(statusInner, "sunken", 1)
 
-local fpsLabel = Instance.new("TextLabel")
-fpsLabel.Position = UDim2.new(0, 12, 0, 6)
-fpsLabel.Size = UDim2.new(0, 80, 0, 10)
-fpsLabel.BackgroundTransparency = 1
-fpsLabel.Text = "FPS"
-fpsLabel.TextColor3 = THEME.textDim
-fpsLabel.TextSize = 9
-fpsLabel.Font = Enum.Font.GothamBold
-fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-fpsLabel.Parent = statusBar
+local fpsTitle = Instance.new("TextLabel")
+fpsTitle.Position = UDim2.new(0, 8, 0, 4)
+fpsTitle.Size = UDim2.new(0, 100, 0, 10)
+fpsTitle.BackgroundTransparency = 1
+fpsTitle.Text = "FPS"
+fpsTitle.TextColor3 = THEME.text
+fpsTitle.TextSize = 10
+fpsTitle.Font = Enum.Font.Code
+fpsTitle.TextXAlignment = Enum.TextXAlignment.Left
+fpsTitle.ZIndex = 3
+fpsTitle.Parent = statusInner
 
 local fpsValue = Instance.new("TextLabel")
-fpsValue.Position = UDim2.new(0, 10, 0, 16)
-fpsValue.Size = UDim2.new(0, 100, 0, 28)
+fpsValue.Position = UDim2.new(0, 8, 0, 14)
+fpsValue.Size = UDim2.new(0, 90, 0, 30)
 fpsValue.BackgroundTransparency = 1
 fpsValue.Text = "--"
-fpsValue.TextColor3 = THEME.accent
-fpsValue.TextSize = 26
-fpsValue.Font = Enum.Font.GothamBlack
+fpsValue.TextColor3 = THEME.accentGreen
+fpsValue.TextSize = 28
+fpsValue.Font = Enum.Font.Code
 fpsValue.TextXAlignment = Enum.TextXAlignment.Left
-fpsValue.Parent = statusBar
+fpsValue.ZIndex = 3
+fpsValue.Parent = statusInner
 
 local fpsBarBg = Instance.new("Frame")
-fpsBarBg.Position = UDim2.new(0, 12, 0, 56)
-fpsBarBg.Size = UDim2.new(0, 118, 0, 3)
-fpsBarBg.BackgroundColor3 = THEME.bgRow
+fpsBarBg.Position = UDim2.new(0, 10, 0, 62)
+fpsBarBg.Size = UDim2.new(0, 100, 0, 8)
+fpsBarBg.BackgroundColor3 = THEME.faceDark
 fpsBarBg.BorderSizePixel = 0
-fpsBarBg.Parent = statusBar
-corner(fpsBarBg, 2)
+fpsBarBg.ZIndex = 3
+fpsBarBg.Parent = statusInner
+stroke(fpsBarBg, THEME.border, 1)
+bevel(fpsBarBg, "sunken", 1)
 
 local fpsBar = Instance.new("Frame")
-fpsBar.Size = UDim2.new(0, 0, 1, 0)
-fpsBar.BackgroundColor3 = THEME.accent
+fpsBar.Position = UDim2.new(0, 1, 0, 1)
+fpsBar.Size = UDim2.new(0, 0, 1, -2)
+fpsBar.BackgroundColor3 = THEME.accentGreen
 fpsBar.BorderSizePixel = 0
+fpsBar.ZIndex = 4
 fpsBar.Parent = fpsBarBg
-corner(fpsBar, 2)
-gradient(fpsBar, THEME.accent, THEME.accent2, 0)
 
-local pingLabel = Instance.new("TextLabel")
-pingLabel.AnchorPoint = Vector2.new(1, 0)
-pingLabel.Position = UDim2.new(1, -12, 0, 6)
-pingLabel.Size = UDim2.new(0, 70, 0, 10)
-pingLabel.BackgroundTransparency = 1
-pingLabel.Text = "PING"
-pingLabel.TextColor3 = THEME.textDim
-pingLabel.TextSize = 9
-pingLabel.Font = Enum.Font.GothamBold
-pingLabel.TextXAlignment = Enum.TextXAlignment.Right
-pingLabel.Parent = statusBar
+local pingTitle = Instance.new("TextLabel")
+pingTitle.AnchorPoint = Vector2.new(1, 0)
+pingTitle.Position = UDim2.new(1, -8, 0, 4)
+pingTitle.Size = UDim2.new(0, 100, 0, 10)
+pingTitle.BackgroundTransparency = 1
+pingTitle.Text = "PING"
+pingTitle.TextColor3 = THEME.text
+pingTitle.TextSize = 10
+pingTitle.Font = Enum.Font.Code
+pingTitle.TextXAlignment = Enum.TextXAlignment.Right
+pingTitle.ZIndex = 3
+pingTitle.Parent = statusInner
 
 local pingValue = Instance.new("TextLabel")
 pingValue.AnchorPoint = Vector2.new(1, 0)
-pingValue.Position = UDim2.new(1, -12, 0, 18)
-pingValue.Size = UDim2.new(0, 100, 0, 20)
+pingValue.Position = UDim2.new(1, -8, 0, 16)
+pingValue.Size = UDim2.new(0, 120, 0, 20)
 pingValue.BackgroundTransparency = 1
 pingValue.Text = "-- ms"
 pingValue.TextColor3 = THEME.text
-pingValue.TextSize = 15
-pingValue.Font = Enum.Font.GothamBold
+pingValue.TextSize = 16
+pingValue.Font = Enum.Font.Code
 pingValue.TextXAlignment = Enum.TextXAlignment.Right
-pingValue.Parent = statusBar
+pingValue.ZIndex = 3
+pingValue.Parent = statusInner
 
--- Toggle master
-local toggleHolder = Instance.new("Frame")
-toggleHolder.AnchorPoint = Vector2.new(1, 1)
-toggleHolder.Position = UDim2.new(1, -12, 1, -8)
-toggleHolder.Size = UDim2.new(0, 68, 0, 22)
-toggleHolder.BackgroundColor3 = THEME.accent
-toggleHolder.BorderSizePixel = 0
-toggleHolder.Parent = statusBar
-corner(toggleHolder, 11)
-gradient(toggleHolder, THEME.accent, THEME.accent2, 45)
-
-local toggleKnob = Instance.new("Frame")
-toggleKnob.Size = UDim2.new(0, 16, 0, 16)
-toggleKnob.Position = UDim2.new(1, -19, 0.5, -8)
-toggleKnob.BackgroundColor3 = Color3.new(1,1,1)
-toggleKnob.BorderSizePixel = 0
-toggleKnob.Parent = toggleHolder
-corner(toggleKnob, 8)
-
-local toggleText = Instance.new("TextLabel")
-toggleText.Position = UDim2.new(0, 8, 0, 0)
-toggleText.Size = UDim2.new(0, 44, 1, 0)
-toggleText.BackgroundTransparency = 1
-toggleText.Text = "ON"
-toggleText.TextColor3 = Color3.fromRGB(10, 30, 20)
-toggleText.TextSize = 10
-toggleText.Font = Enum.Font.GothamBlack
-toggleText.TextXAlignment = Enum.TextXAlignment.Left
-toggleText.Parent = toggleHolder
-
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, 0, 1, 0)
-toggleBtn.BackgroundTransparency = 1
-toggleBtn.Text = ""
-toggleBtn.Parent = toggleHolder
+local masterBtn, masterLbl = retroButton(statusInner,
+    UDim2.new(0, 90, 0, 24),
+    UDim2.new(1, -100, 0, 50),
+    "ENABLED",
+    Color3.fromRGB(200, 230, 200)
+)
+masterBtn.ZIndex = 4
+masterLbl.ZIndex = 5
+masterLbl.TextSize = 12
+masterLbl.TextColor3 = THEME.accentGreenD
 
 --======================================================
--- CATEGORIAS
+-- CABEÇALHO "MÓDULOS"
 --======================================================
+local catHeaderBar = Instance.new("Frame")
+catHeaderBar.Position = UDim2.new(0, 8, 0, 122)
+catHeaderBar.Size = UDim2.new(1, -16, 0, 18)
+catHeaderBar.BackgroundColor3 = THEME.titleA
+catHeaderBar.BorderSizePixel = 0
+catHeaderBar.Parent = hub
+stroke(catHeaderBar, THEME.border, 2)
 
 local catHeader = Instance.new("TextLabel")
-catHeader.Position = UDim2.new(0, 14, 0, 132)
-catHeader.Size = UDim2.new(1, -28, 0, 12)
+catHeader.Size = UDim2.new(1, 0, 1, 0)
 catHeader.BackgroundTransparency = 1
-catHeader.Text = "MÓDULOS"
-catHeader.TextColor3 = THEME.textDim
-catHeader.TextSize = 9
-catHeader.Font = Enum.Font.GothamBold
+catHeader.Text = " ▶ MÓDULOS"
+catHeader.TextColor3 = THEME.yellow
+catHeader.TextSize = 12
+catHeader.Font = Enum.Font.Code
 catHeader.TextXAlignment = Enum.TextXAlignment.Left
-catHeader.Parent = hub
+catHeader.ZIndex = 3
+catHeader.Parent = catHeaderBar
 
-local scroll = Instance.new("ScrollingFrame")
-scroll.Position = UDim2.new(0, 10, 0, 148)
-scroll.Size = UDim2.new(1, -20, 1, -164)
-scroll.BackgroundTransparency = 1
+--======================================================
+-- SCROLL DAS CATEGORIAS
+--======================================================
+local scroll = Instance.new("Frame")
+scroll.Position = UDim2.new(0, 8, 0, 144)
+scroll.Size = UDim2.new(1, -16, 1, -152)
+scroll.BackgroundColor3 = THEME.faceLight
 scroll.BorderSizePixel = 0
-scroll.ScrollBarThickness = 3
-scroll.ScrollBarImageColor3 = THEME.borderLight
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scroll.Parent = hub
+stroke(scroll, THEME.border, 2)
+bevel(scroll, "sunken", 1)
+
+local scrollArea = Instance.new("ScrollingFrame")
+scrollArea.Position = UDim2.new(0, 3, 0, 3)
+scrollArea.Size = UDim2.new(1, -6, 1, -6)
+scrollArea.BackgroundTransparency = 1
+scrollArea.BorderSizePixel = 0
+scrollArea.ScrollBarThickness = 4
+scrollArea.ScrollBarImageColor3 = THEME.faceDark
+scrollArea.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollArea.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollArea.ZIndex = 2
+scrollArea.Parent = scroll
 
 local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 3)
-listLayout.Parent = scroll
+listLayout.Padding = UDim.new(0, 2)
+listLayout.Parent = scrollArea
 
 --======================================================
--- SWITCH COMPONENT
+-- CHECKBOX + LINHAS DE CATEGORIA
 --======================================================
+local function makeCheckbox(parent, initial, callback)
+    local box = Instance.new("TextButton")
+    box.Size = UDim2.new(0, 16, 0, 16)
+    box.BackgroundColor3 = THEME.faceLight
+    box.Text = ""
+    box.BorderSizePixel = 0
+    box.AutoButtonColor = false
+    box.ZIndex = 3
+    box.Parent = parent
+    stroke(box, THEME.border, 2)
+    bevel(box, "sunken", 1)
 
-local function makeSwitch(parent, initial, callback)
-    local pill = Instance.new("TextButton")
-    pill.Size = UDim2.new(0, 34, 0, 18)
-    pill.BackgroundColor3 = initial and THEME.accent or THEME.bgRow
-    pill.Text = ""
-    pill.BorderSizePixel = 0
-    pill.AutoButtonColor = false
-    pill.Parent = parent
-    corner(pill, 9)
-
-    local strokeObj, gradObj
-    if initial then
-        gradObj = gradient(pill, THEME.accent, THEME.accent2, 45)
-    else
-        strokeObj = stroke(pill, THEME.border, 1)
-    end
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.Position = initial and UDim2.new(0, 18, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-    knob.BackgroundColor3 = Color3.new(1,1,1)
-    knob.BorderSizePixel = 0
-    knob.Parent = pill
-    corner(knob, 7)
+    local check = Instance.new("TextLabel")
+    check.Size = UDim2.new(1, 0, 1, 0)
+    check.BackgroundTransparency = 1
+    check.Text = "✔"
+    check.TextColor3 = THEME.accentGreen
+    check.TextSize = 14
+    check.Font = Enum.Font.GothamBold
+    check.ZIndex = 4
+    check.Visible = initial
+    check.Parent = box
 
     local state = initial
 
-    local function apply(v)
-        state = v
-        if v then
-            pill.BackgroundColor3 = THEME.accent
-            if not gradObj then gradObj = gradient(pill, THEME.accent, THEME.accent2, 45) end
-            if strokeObj then strokeObj:Destroy() ; strokeObj = nil end
-        else
-            pill.BackgroundColor3 = THEME.bgRow
-            if gradObj then gradObj:Destroy() ; gradObj = nil end
-            if not strokeObj then strokeObj = stroke(pill, THEME.border, 1) end
-        end
-        TweenService:Create(knob, TWEEN_FAST, {
-            Position = v and UDim2.new(0, 18, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-        }):Play()
-    end
-
-    pill.MouseButton1Click:Connect(function()
-        apply(not state)
+    box.MouseButton1Click:Connect(function()
+        state = not state
+        check.Visible = state
         callback(state)
     end)
 
-    return apply
+    return box, check
 end
-
---======================================================
--- LINHAS DE CATEGORIA
---======================================================
 
 for i, key in ipairs(CATEGORY_ORDER) do
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 28)
-    row.BackgroundColor3 = THEME.bgRow
+    row.Size = UDim2.new(1, -4, 0, 24)
+    row.BackgroundColor3 = THEME.faceLight
     row.BorderSizePixel = 0
     row.LayoutOrder = i
-    row.Parent = scroll
-    corner(row, 7)
-    stroke(row, THEME.border, 1, 0.4)
+    row.ZIndex = 2
+    row.Parent = scrollArea
+    stroke(row, THEME.bevelLo, 1, 0.6)
 
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.new(0, 5, 0, 5)
-    dot.Position = UDim2.new(0, 3, 0.5, -2.5)
-    dot.BackgroundColor3 = THEME.accent
-    dot.BorderSizePixel = 0
-    dot.Parent = row
-    corner(dot, 3)
+    local cbHolder = Instance.new("Frame")
+    cbHolder.Position = UDim2.new(0, 6, 0, 4)
+    cbHolder.Size = UDim2.new(0, 16, 0, 16)
+    cbHolder.BackgroundTransparency = 1
+    cbHolder.ZIndex = 3
+    cbHolder.Parent = row
 
-    local rowLabel = Instance.new("TextLabel")
-    rowLabel.Position = UDim2.new(0, 14, 0, 0)
-    rowLabel.Size = UDim2.new(1, -58, 1, 0)
-    rowLabel.BackgroundTransparency = 1
-    rowLabel.Text = CATEGORY_LABEL[key]
-    rowLabel.TextColor3 = THEME.text
-    rowLabel.TextSize = 11
-    rowLabel.Font = Enum.Font.Gotham
-    rowLabel.TextXAlignment = Enum.TextXAlignment.Left
-    rowLabel.Parent = row
-
-    local swHolder = Instance.new("Frame")
-    swHolder.AnchorPoint = Vector2.new(1, 0.5)
-    swHolder.Position = UDim2.new(1, -8, 0.5, 0)
-    swHolder.Size = UDim2.new(0, 34, 0, 18)
-    swHolder.BackgroundTransparency = 1
-    swHolder.Parent = row
-
-    makeSwitch(swHolder, categories[key], function(state)
+    makeCheckbox(cbHolder, categories[key], function(state)
         categories[key] = state
         if state then
             if key == "motion_blur" then motionBlur.Enabled = true end
@@ -835,21 +810,32 @@ for i, key in ipairs(CATEGORY_ORDER) do
         end
     end)
 
+    local rowLabel = Instance.new("TextLabel")
+    rowLabel.Position = UDim2.new(0, 28, 0, 0)
+    rowLabel.Size = UDim2.new(1, -32, 1, 0)
+    rowLabel.BackgroundTransparency = 1
+    rowLabel.Text = CATEGORY_LABEL[key]
+    rowLabel.TextColor3 = THEME.text
+    rowLabel.TextSize = 12
+    rowLabel.Font = Enum.Font.Code
+    rowLabel.TextXAlignment = Enum.TextXAlignment.Left
+    rowLabel.ZIndex = 3
+    rowLabel.Parent = row
+
     row.MouseEnter:Connect(function()
-        TweenService:Create(row, TWEEN_FAST, {BackgroundColor3 = THEME.bgRowHover}):Play()
+        row.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
     end)
     row.MouseLeave:Connect(function()
-        TweenService:Create(row, TWEEN_FAST, {BackgroundColor3 = THEME.bgRow}):Play()
+        row.BackgroundColor3 = THEME.faceLight
     end)
 end
 
 --======================================================
--- DRAG DO HUB (pelo header)
+-- DRAG (pelo header)
 --======================================================
-
 do
     local dragging, dragStart, startPos
-    local function beginDrag(input)
+    header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -861,8 +847,7 @@ do
                 end
             end)
         end
-    end
-    header.InputBegan:Connect(beginDrag)
+    end)
     UserInput.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
             or input.UserInputType == Enum.UserInputType.Touch) then
@@ -876,50 +861,65 @@ do
 end
 
 --======================================================
--- BOLINHA FLUTUANTE (FAB)
+-- BOLINHA FLUTUANTE (mini title bar retrô)
 --======================================================
-
-local ORB_SIZE = 46
+local ORB_W, ORB_H = 96, 26
 
 local orb = Instance.new("TextButton")
 orb.Name = "VentisOrb"
 orb.AnchorPoint = Vector2.new(0.5, 0.5)
-orb.Position = UDim2.new(1, -50, 0.5, 0)   -- colada na direita
-orb.Size = UDim2.new(0, ORB_SIZE, 0, ORB_SIZE)
-orb.BackgroundColor3 = THEME.accent
-orb.Text = "⚡"
-orb.TextColor3 = Color3.new(1,1,1)
-orb.TextSize = 22
-orb.Font = Enum.Font.GothamBold
+orb.Position = UDim2.new(1, -60, 0.5, 0)
+orb.Size = UDim2.new(0, ORB_W, 0, ORB_H)
+orb.BackgroundColor3 = THEME.titleA
+orb.Text = ""
 orb.BorderSizePixel = 0
 orb.AutoButtonColor = false
-orb.Visible = false                      -- começa escondida
+orb.Visible = false
 orb.Parent = gui
-corner(orb, ORB_SIZE / 2)
-stroke(orb, Color3.fromRGB(0, 255, 160), 1.5, 0.3)
-gradient(orb, THEME.accent, THEME.accent2, 135)
 
--- sombra/pulso
-task.spawn(function()
-    while true do
-        if orb.Visible then
-            TweenService:Create(orb, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-                Size = UDim2.new(0, ORB_SIZE + 4, 0, ORB_SIZE + 4)
-            }):Play()
-        end
-        task.wait(3)
-    end
-end)
+stroke(orb, THEME.border, 2)
 
--- hover
+local orbGrad = Instance.new("UIGradient")
+orbGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0.00, THEME.titleA),
+    ColorSequenceKeypoint.new(0.45, THEME.titleB),
+    ColorSequenceKeypoint.new(1.00, THEME.titleA),
+}
+orbGrad.Parent = orb
+
+local orbBev = bevel(orb, "raised", 1)
+
+local orbIcon = Instance.new("TextLabel")
+orbIcon.Position = UDim2.new(0, 4, 0, 0)
+orbIcon.Size = UDim2.new(0, 20, 1, 0)
+orbIcon.BackgroundTransparency = 1
+orbIcon.Text = "⚡"
+orbIcon.TextColor3 = THEME.yellow
+orbIcon.TextSize = 14
+orbIcon.Font = Enum.Font.GothamBold
+orbIcon.ZIndex = 3
+orbIcon.Parent = orb
+
+local orbLabel = Instance.new("TextLabel")
+orbLabel.Position = UDim2.new(0, 22, 0, 0)
+orbLabel.Size = UDim2.new(1, -26, 1, 0)
+orbLabel.BackgroundTransparency = 1
+orbLabel.Text = "VENTIS"
+orbLabel.TextColor3 = THEME.textLight
+orbLabel.TextSize = 12
+orbLabel.Font = Enum.Font.Code
+orbLabel.TextXAlignment = Enum.TextXAlignment.Left
+orbLabel.ZIndex = 3
+orbLabel.Parent = orb
+
 orb.MouseEnter:Connect(function()
-    TweenService:Create(orb, TWEEN_FAST, {Size = UDim2.new(0, ORB_SIZE + 6, 0, ORB_SIZE + 6)}):Play()
+    TweenService:Create(orb, TWEEN_FAST, {BackgroundColor3 = THEME.titleB}):Play()
 end)
 orb.MouseLeave:Connect(function()
-    TweenService:Create(orb, TWEEN_FAST, {Size = UDim2.new(0, ORB_SIZE, 0, ORB_SIZE)}):Play()
+    TweenService:Create(orb, TWEEN_FAST, {BackgroundColor3 = THEME.titleA}):Play()
 end)
 
--- drag da orb (com detecção de clique vs arrasto)
+-- drag da orb com clique vs arrasto
 do
     local dragging, dragStart, startPos, moved
     local MOVE_THRESHOLD = 6
@@ -956,8 +956,7 @@ do
     end)
 
     orb.MouseButton1Click:Connect(function()
-        if moved then return end   -- foi arrasto, não clique
-        -- abre o hub
+        if moved then return end
         orb.Visible = false
         hub.Visible = true
         hub.Size = UDim2.new(0, 0, 0, 0)
@@ -970,16 +969,14 @@ end
 --======================================================
 -- MINIMIZAR / FECHAR
 --======================================================
-
 local minimized = false
-local currentFullH = HUB_H
 
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     TweenService:Create(hub, TWEEN_MED, {
-        Size = minimized and UDim2.new(0, HUB_W, 0, 44) or UDim2.new(0, HUB_W, 0, currentFullH)
+        Size = minimized and UDim2.new(0, HUB_W, 0, 26) or UDim2.new(0, HUB_W, 0, HUB_H)
     }):Play()
-    minBtn.Text = minimized and "+" or "—"
+    minLbl.Text = minimized and "+" or "—"
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
@@ -988,7 +985,6 @@ closeBtn.MouseButton1Click:Connect(function()
     }):Play()
     task.wait(0.28)
     hub.Visible = false
-    -- reseta tamanho interno pra quando reabrir
     hub.Size = UDim2.new(0, HUB_W, 0, HUB_H)
     orb.Visible = true
 end)
@@ -996,27 +992,21 @@ end)
 --======================================================
 -- ON/OFF MASTER
 --======================================================
-
 local function setMasterState(newState)
     if busy then return end
     on = newState
 
     if on then
-        TweenService:Create(toggleHolder, TWEEN_FAST, {BackgroundColor3 = THEME.accent}):Play()
-        if not toggleHolder:FindFirstChildOfClass("UIGradient") then
-            gradient(toggleHolder, THEME.accent, THEME.accent2, 45)
-        end
-        TweenService:Create(toggleKnob, TWEEN_FAST, {Position = UDim2.new(1, -19, 0.5, -8)}):Play()
-        toggleText.Text = "ON"
+        masterLbl.Text = "ENABLED"
+        masterLbl.TextColor3 = THEME.accentGreenD
+        masterBtn.BackgroundColor3 = Color3.fromRGB(200, 230, 200)
         motionBlur.Enabled = categories.motion_blur
         applyAll()
         print("⚡ VENTIS: ON")
     else
-        TweenService:Create(toggleHolder, TWEEN_FAST, {BackgroundColor3 = THEME.bgRow}):Play()
-        local g = toggleHolder:FindFirstChildOfClass("UIGradient")
-        if g then g:Destroy() end
-        TweenService:Create(toggleKnob, TWEEN_FAST, {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
-        toggleText.Text = "OFF"
+        masterLbl.Text = "DISABLED"
+        masterLbl.TextColor3 = THEME.danger
+        masterBtn.BackgroundColor3 = Color3.fromRGB(240, 210, 210)
         motionBlur.Enabled = false
         motionBlur.Size = 0
         restore()
@@ -1024,12 +1014,11 @@ local function setMasterState(newState)
     end
 end
 
-toggleBtn.MouseButton1Click:Connect(function() setMasterState(not on) end)
+masterBtn.MouseButton1Click:Connect(function() setMasterState(not on) end)
 
 --======================================================
 -- HOOKS
 --======================================================
-
 local function hook(desc)
     if not on then return end
     if not LIST[desc.ClassName] and not desc:IsA("BasePart") then return end
@@ -1040,11 +1029,10 @@ game.DescendantAdded:Connect(hook)
 --======================================================
 -- FPS / PING
 --======================================================
-
 local frameTimes = {}
 local function fpsColor(fps)
-    if fps >= 50 then return THEME.success
-    elseif fps >= 30 then return THEME.warn
+    if fps >= 50 then return THEME.accentGreen
+    elseif fps >= 30 then return Color3.fromRGB(220, 160, 0)
     else return THEME.danger end
 end
 
@@ -1060,7 +1048,7 @@ RunService.RenderStepped:Connect(function()
     fpsValue.TextColor3 = col
     fpsBar.BackgroundColor3 = col
     local pct = math.clamp(fps / 120, 0, 1)
-    TweenService:Create(fpsBar, TWEEN_FAST, {Size = UDim2.new(pct, 0, 1, 0)}):Play()
+    fpsBar.Size = UDim2.new(pct, 0, 1, -2)
 end)
 
 task.spawn(function()
@@ -1070,8 +1058,8 @@ task.spawn(function()
         end)
         if ok and ping then
             pingValue.Text = ping .. " ms"
-            if ping < 80 then pingValue.TextColor3 = THEME.success
-            elseif ping < 160 then pingValue.TextColor3 = THEME.warn
+            if ping < 80 then pingValue.TextColor3 = THEME.accentGreenD
+            elseif ping < 160 then pingValue.TextColor3 = Color3.fromRGB(180, 120, 0)
             else pingValue.TextColor3 = THEME.danger end
         end
         task.wait(1)
@@ -1081,7 +1069,6 @@ end)
 --======================================================
 -- AUTO-REAPLICAÇÃO
 --======================================================
-
 task.spawn(function()
     while true do
         task.wait(60)
@@ -1099,11 +1086,10 @@ end)
 --======================================================
 -- INICIALIZAÇÃO
 --======================================================
-
 if on then applyAll() end
 
 print("==============================================")
-print("⚡ VENTIS HUB V18.1 — MOBILE-FRIENDLY")
-print("Feche com ✕ → abre uma bolinha verde flutuante.")
-print("Arraste a bolinha pra onde quiser, clique pra reabrir.")
+print("⚡ VENTIS HUB V18.1r — RETRO ADMIN PANEL")
+print("Feche com ✕ → aparece a mini-title-bar '⚡ VENTIS'.")
+print("Arraste a mini-title-bar, clique pra reabrir.")
 print("==============================================")
