@@ -1,0 +1,660 @@
+-- ═══════════════════════════════════════════════════════════
+-- 💜 VENTIS HUB — Antilag + Tela Esticada + HUD
+-- ═══════════════════════════════════════════════════════════
+
+local w = workspace
+local L = game:GetService("Lighting")
+local P = game:GetService("Players").LocalPlayer
+local C = workspace.CurrentCamera
+local US = game:GetService("UserSettings")
+local RS = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local CG = game:GetService("CoreGui")
+
+-- ═══ CONFIG ═══
+local CFG = {
+    AntiLag = false,
+    TelaEsticada = false,
+    Esticada = 0.65,
+    HUD = true,
+}
+
+-- ═══ CORES ═══
+local COR = {
+    bg        = Color3.fromRGB(20, 20, 22),
+    panel     = Color3.fromRGB(28, 28, 32),
+    card      = Color3.fromRGB(35, 35, 40),
+    cardBorder= Color3.fromRGB(55, 55, 62),
+    header    = Color3.fromRGB(45, 45, 52),
+    text      = Color3.fromRGB(230, 230, 235),
+    textDim   = Color3.fromRGB(150, 150, 160),
+    purple    = Color3.fromRGB(130, 90, 220),
+    purpleDark= Color3.fromRGB(70, 40, 140),
+    purpleLight= Color3.fromRGB(170, 130, 255),
+    green     = Color3.fromRGB(60, 200, 130),
+    red       = Color3.fromRGB(200, 60, 70),
+}
+
+-- ═══ GUI ═══
+local g = Instance.new("ScreenGui")
+g.Name = "VentisHub_" .. tick()
+g.ResetOnSpawn = false
+g.IgnoreGuiInset = true
+g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+if syn and syn.protect_gui then pcall(function() syn.protect_gui(g) end) end
+g.Parent = (gethui and gethui()) or CG
+
+-- ═══════════════════════════════════════
+-- HUD FPS/PING
+-- ═══════════════════════════════════════
+local hudFrame = Instance.new("Frame", g)
+hudFrame.Size = UDim2.new(0, 120, 0, 48)
+hudFrame.Position = UDim2.new(1, -130, 0, 10)
+hudFrame.BackgroundColor3 = COR.bg
+hudFrame.BackgroundTransparency = 0.15
+hudFrame.BorderSizePixel = 0
+Instance.new("UICorner", hudFrame).CornerRadius = UDim.new(0, 4)
+local hudStroke = Instance.new("UIStroke", hudFrame)
+hudStroke.Color = COR.cardBorder
+hudStroke.Thickness = 1
+
+local fpsLbl = Instance.new("TextLabel", hudFrame)
+fpsLbl.Size = UDim2.new(1, -10, 0, 18)
+fpsLbl.Position = UDim2.new(0, 8, 0, 6)
+fpsLbl.BackgroundTransparency = 1
+fpsLbl.Text = "FPS --"
+fpsLbl.TextColor3 = COR.green
+fpsLbl.Font = Enum.Font.GothamBold
+fpsLbl.TextSize = 11
+fpsLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local pingLbl = Instance.new("TextLabel", hudFrame)
+pingLbl.Size = UDim2.new(1, -10, 0, 18)
+pingLbl.Position = UDim2.new(0, 8, 0, 24)
+pingLbl.BackgroundTransparency = 1
+pingLbl.Text = "PING --"
+pingLbl.TextColor3 = COR.purple
+pingLbl.Font = Enum.Font.GothamBold
+pingLbl.TextSize = 11
+pingLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ═══════════════════════════════════════
+-- 🔵 BOLINHA PROFISSIONAL
+-- ═══════════════════════════════════════
+local ball = Instance.new("Frame", g)
+ball.Size = UDim2.new(0, 54, 0, 54)
+ball.Position = UDim2.new(0, 20, 0.5, -27)
+ball.BackgroundColor3 = COR.purpleDark
+ball.BorderSizePixel = 0
+ball.Active = true
+Instance.new("UICorner", ball).CornerRadius = UDim.new(1, 0)
+
+local ballGrad = Instance.new("UIGradient", ball)
+ballGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 100, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 60, 200)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 30, 130)),
+}
+ballGrad.Rotation = 135
+
+local ballStroke = Instance.new("UIStroke", ball)
+ballStroke.Color = COR.purpleLight
+ballStroke.Thickness = 2
+ballStroke.Transparency = 0.2
+
+local glow = Instance.new("Frame", ball)
+glow.Size = UDim2.new(1, 6, 1, 6)
+glow.Position = UDim2.new(0, -3, 0, -3)
+glow.BackgroundColor3 = COR.purple
+glow.BackgroundTransparency = 0.8
+glow.BorderSizePixel = 0
+glow.ZIndex = -1
+Instance.new("UICorner", glow).CornerRadius = UDim.new(1, 0)
+
+local vContainer = Instance.new("Frame", ball)
+vContainer.Size = UDim2.new(1, 0, 1, 0)
+vContainer.BackgroundTransparency = 1
+vContainer.ZIndex = 2
+
+local vLeft = Instance.new("Frame", vContainer)
+vLeft.Size = UDim2.new(0, 4, 0, 18)
+vLeft.Position = UDim2.new(0.5, -8, 0.5, -9)
+vLeft.AnchorPoint = Vector2.new(0.5, 0.5)
+vLeft.Rotation = 20
+vLeft.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+vLeft.BorderSizePixel = 0
+Instance.new("UICorner", vLeft).CornerRadius = UDim.new(1, 0)
+vLeft.ZIndex = 3
+
+local vRight = Instance.new("Frame", vContainer)
+vRight.Size = UDim2.new(0, 4, 0, 18)
+vRight.Position = UDim2.new(0.5, 8, 0.5, -9)
+vRight.AnchorPoint = Vector2.new(0.5, 0.5)
+vRight.Rotation = -20
+vRight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+vRight.BorderSizePixel = 0
+Instance.new("UICorner", vRight).CornerRadius = UDim.new(1, 0)
+vRight.ZIndex = 3
+
+local dot = Instance.new("Frame", ball)
+dot.Size = UDim2.new(0, 6, 0, 6)
+dot.Position = UDim2.new(1, -14, 0, 8)
+dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dot.BackgroundTransparency = 0.3
+dot.BorderSizePixel = 0
+dot.ZIndex = 3
+Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+local ballBtn = Instance.new("TextButton", ball)
+ballBtn.Size = UDim2.new(1, 0, 1, 0)
+ballBtn.BackgroundTransparency = 1
+ballBtn.Text = ""
+ballBtn.ZIndex = 5
+
+-- ═══════════════════════════════════════
+-- JANELA
+-- ═══════════════════════════════════════
+local main = Instance.new("Frame", g)
+main.Size = UDim2.new(0, 340, 0, 230)
+main.Position = UDim2.new(0, 90, 0.5, -115)
+main.BackgroundColor3 = COR.bg
+main.BorderSizePixel = 0
+main.Active = true
+main.Visible = false
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
+local mainStroke = Instance.new("UIStroke", main)
+mainStroke.Color = COR.cardBorder
+mainStroke.Thickness = 1
+
+-- Header
+local header = Instance.new("Frame", main)
+header.Size = UDim2.new(1, 0, 0, 34)
+header.BackgroundColor3 = COR.header
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 6)
+local hFix = Instance.new("Frame", header)
+hFix.Size = UDim2.new(1, 0, 0, 10)
+hFix.Position = UDim2.new(0, 0, 1, -10)
+hFix.BackgroundColor3 = COR.header
+hFix.BorderSizePixel = 0
+
+local logo = Instance.new("TextLabel", header)
+logo.Size = UDim2.new(0, 150, 1, 0)
+logo.Position = UDim2.new(0, 12, 0, 0)
+logo.BackgroundTransparency = 1
+logo.Text = "Ventis Hub"
+logo.TextColor3 = COR.purple
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 15
+logo.TextXAlignment = Enum.TextXAlignment.Left
+
+local logoVersion = Instance.new("TextLabel", header)
+logoVersion.Size = UDim2.new(0, 60, 1, 0)
+logoVersion.Position = UDim2.new(0, 105, 0, 0)
+logoVersion.BackgroundTransparency = 1
+logoVersion.Text = "v1.0"
+logoVersion.TextColor3 = COR.textDim
+logoVersion.Font = Enum.Font.Gotham
+logoVersion.TextSize = 10
+logoVersion.TextXAlignment = Enum.TextXAlignment.Left
+
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 24, 0, 24)
+closeBtn.Position = UDim2.new(1, -30, 0.5, -12)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = COR.textDim
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.MouseButton1Click:Connect(function() main.Visible = false end)
+
+-- Arrastar janela
+do
+    local drag, sp, sf
+    header.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true; sp = i.Position; sf = main.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local d = i.Position - sp
+            main.Position = UDim2.new(sf.X.Scale, sf.X.Offset + d.X, sf.Y.Scale, sf.Y.Offset + d.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end
+    end)
+end
+
+-- Arrastar bolinha + clique
+do
+    local dragging, dragStart, startPos, moved
+    ball.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; moved = false
+            dragStart = i.Position; startPos = ball.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local delta = i.Position - dragStart
+            if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then moved = true end
+            if moved then
+                ball.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
+            dragging = false 
+        end
+    end)
+    ballBtn.MouseButton1Click:Connect(function()
+        if moved then return end
+        main.Visible = not main.Visible
+    end)
+end
+
+-- ═══ CONTAINER (sem tabs) ═══
+local pageContainer = Instance.new("Frame", main)
+pageContainer.Size = UDim2.new(1, -10, 1, -44)
+pageContainer.Position = UDim2.new(0, 5, 0, 39)
+pageContainer.BackgroundTransparency = 1
+
+-- ═══ FÁBRICAS ═══
+local function criarCard(parent, titulo, x, y, w, h)
+    local card = Instance.new("Frame", parent)
+    card.Size = UDim2.new(0, w, 0, h)
+    card.Position = UDim2.new(0, x, 0, y)
+    card.BackgroundColor3 = COR.panel
+    card.BorderSizePixel = 0
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 4)
+    local s = Instance.new("UIStroke", card)
+    s.Color = COR.cardBorder
+    s.Thickness = 1
+
+    local t = Instance.new("TextLabel", card)
+    t.Size = UDim2.new(1, -16, 0, 20)
+    t.Position = UDim2.new(0, 8, 0, 4)
+    t.BackgroundTransparency = 1
+    t.Text = titulo
+    t.TextColor3 = COR.text
+    t.Font = Enum.Font.GothamBold
+    t.TextSize = 12
+    t.TextXAlignment = Enum.TextXAlignment.Left
+
+    local sep = Instance.new("Frame", card)
+    sep.Size = UDim2.new(1, -16, 0, 1)
+    sep.Position = UDim2.new(0, 8, 0, 26)
+    sep.BackgroundColor3 = COR.cardBorder
+    sep.BorderSizePixel = 0
+
+    return card
+end
+
+local function criarCheckbox(parent, y, label, ativoInicial, callback)
+    local row = Instance.new("Frame", parent)
+    row.Size = UDim2.new(1, -16, 0, 24)
+    row.Position = UDim2.new(0, 8, 0, y)
+    row.BackgroundTransparency = 1
+
+    local cb = Instance.new("TextButton", row)
+    cb.Size = UDim2.new(0, 14, 0, 14)
+    cb.Position = UDim2.new(0, 4, 0.5, -7)
+    cb.BackgroundColor3 = COR.card
+    cb.Text = ""
+    cb.BorderSizePixel = 0
+    cb.AutoButtonColor = false
+    Instance.new("UICorner", cb).CornerRadius = UDim.new(0, 2)
+    local cbStroke = Instance.new("UIStroke", cb)
+    cbStroke.Color = COR.cardBorder
+    cbStroke.Thickness = 1
+
+    local check = Instance.new("TextLabel", cb)
+    check.Size = UDim2.new(1, 0, 1, 0)
+    check.BackgroundTransparency = 1
+    check.Text = "✓"
+    check.TextColor3 = COR.purple
+    check.Font = Enum.Font.GothamBold
+    check.TextSize = 11
+    check.Visible = ativoInicial
+
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(1, -30, 1, 0)
+    lbl.Position = UDim2.new(0, 24, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label or "Enabled"
+    lbl.TextColor3 = COR.text
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local state = ativoInicial
+    cb.MouseButton1Click:Connect(function()
+        state = not state
+        check.Visible = state
+        if callback then callback(state) end
+    end)
+
+    return function() return state end
+end
+
+local function criarSlider(parent, y, label, valorInicial)
+    local box = Instance.new("Frame", parent)
+    box.Size = UDim2.new(1, -16, 0, 34)
+    box.Position = UDim2.new(0, 8, 0, y)
+    box.BackgroundTransparency = 1
+
+    local lbl = Instance.new("TextLabel", box)
+    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.Position = UDim2.new(0, 0, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label
+    lbl.TextColor3 = COR.textDim
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local track = Instance.new("Frame", box)
+    track.Size = UDim2.new(1, 0, 0, 10)
+    track.Position = UDim2.new(0, 0, 0, 18)
+    track.BackgroundColor3 = Color3.fromRGB(50, 45, 60)
+    track.BorderSizePixel = 0
+    Instance.new("UICorner", track).CornerRadius = UDim.new(0, 2)
+
+    local pct = valorInicial or 0.65
+    local fill = Instance.new("Frame", track)
+    fill.Size = UDim2.new(pct, 0, 1, 0)
+    fill.BackgroundColor3 = COR.purple
+    fill.BorderSizePixel = 0
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 2)
+
+    local dragging = false
+    local callbackFn = nil
+
+    local function setPct(rel)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        if callbackFn then callbackFn(rel) end
+    end
+
+    track.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            local rel = math.clamp((i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0.3, 1)
+            setPct(rel)
+        end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local rel = math.clamp((i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0.3, 1)
+            setPct(rel)
+        end
+    end)
+    UIS.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+
+    return { setCallback = function(fn) callbackFn = fn end, label = lbl }
+end
+
+-- ═══════════════════════════════════════
+-- CARD ÚNICO (Performance)
+-- ═══════════════════════════════════════
+local perfCard = criarCard(pageContainer, "Performance", 10, 5, 315, 175)
+
+criarCheckbox(perfCard, 34, "Anti-Lag", false, function(v)
+    CFG.AntiLag = v
+    if v then ligarAntiLag() else desligarAntiLag() end
+end)
+
+criarCheckbox(perfCard, 62, "Tela Esticada", false, function(v)
+    CFG.TelaEsticada = v
+end)
+
+local sliderEsticada = criarSlider(perfCard, 90, "Intensidade: 0.65", 0.65)
+sliderEsticada.setCallback(function(rel)
+    CFG.Esticada = rel
+    sliderEsticada.label.Text = "Intensidade: " .. string.format("%.2f", rel)
+end)
+
+criarCheckbox(perfCard, 130, "HUD FPS/Ping", true, function(v)
+    CFG.HUD = v
+    hudFrame.Visible = v
+end)
+
+-- ═══════════════════════════════════════
+-- LÓGICA DO ANTILAG
+-- ═══════════════════════════════════════
+local BACKUP = {}
+local PROCESSADOS = {}
+local Ativo = false
+
+local CLASSES = {
+    Decal = 1, Texture = 1, MeshPart = 1, SpecialMesh = 1,
+    SurfaceAppearance = 1, Sky = 1, Clouds = 1,
+    Shirt = 1, Pants = 1, ShirtGraphic = 1,
+    ParticleEmitter = 1, Trail = 1, Beam = 1,
+    Fire = 1, Smoke = 1, Sparkles = 1,
+    PointLight = 1, SpotLight = 1, SurfaceLight = 1,
+    Atmosphere = 1, BloomEffect = 1, BlurEffect = 1,
+    ColorCorrectionEffect = 1, SunRaysEffect = 1, DepthOfFieldEffect = 1,
+}
+
+local function backup(obj, prop)
+    if not obj then return end
+    if not BACKUP[obj] then BACKUP[obj] = {} end
+    if BACKUP[obj][prop] == nil then
+        local ok, val = pcall(function() return obj[prop] end)
+        if ok then BACKUP[obj][prop] = val end
+    end
+end
+
+local function setP(obj, prop, value)
+    backup(obj, prop)
+    pcall(function() obj[prop] = value end)
+end
+
+local function otimizar(o)
+    if not o or not o.Parent then return end
+    if PROCESSADOS[o] then return end
+    PROCESSADOS[o] = true
+
+    local c = o.ClassName
+    pcall(function()
+        if c == "Decal" or c == "Texture" then
+            setP(o, "Texture", ""); setP(o, "Transparency", 1)
+        elseif c == "MeshPart" then
+            setP(o, "TextureID", ""); setP(o, "Material", Enum.Material.SmoothPlastic)
+            setP(o, "Reflectance", 0); setP(o, "CastShadow", false)
+        elseif c == "SpecialMesh" then
+            setP(o, "TextureId", ""); setP(o, "MeshId", "")
+        elseif c == "SurfaceAppearance" then
+            setP(o, "ColorMap", ""); setP(o, "NormalMap", "")
+            setP(o, "RoughnessMap", ""); setP(o, "MetalnessMap", "")
+        elseif c == "Sky" then
+            setP(o, "SkyboxBk", ""); setP(o, "SkyboxDn", ""); setP(o, "SkyboxFt", "")
+            setP(o, "SkyboxLf", ""); setP(o, "SkyboxRt", ""); setP(o, "SkyboxUp", "")
+            setP(o, "StarCount", 0); setP(o, "SunAngularSize", 0); setP(o, "MoonAngularSize", 0)
+        elseif c == "Clouds" then
+            setP(o, "Enabled", false)
+        elseif c == "ParticleEmitter" or c == "Trail" or c == "Beam" then
+            setP(o, "Texture", ""); setP(o, "Enabled", false)
+        elseif c == "Fire" or c == "Smoke" or c == "Sparkles" then
+            setP(o, "Enabled", false)
+        elseif c == "PointLight" or c == "SpotLight" or c == "SurfaceLight" then
+            setP(o, "Enabled", false)
+        elseif c == "Atmosphere" then
+            setP(o, "Density", 0); setP(o, "Haze", 0); setP(o, "Glare", 0)
+        elseif c == "BloomEffect" or c == "SunRaysEffect" or c == "ColorCorrectionEffect" or c == "DepthOfFieldEffect" or c == "BlurEffect" then
+            setP(o, "Enabled", false)
+        elseif o:IsA("BasePart") then
+            setP(o, "CastShadow", false); setP(o, "Reflectance", 0)
+            if o.Material ~= Enum.Material.SmoothPlastic and o.Material ~= Enum.Material.Plastic then
+                setP(o, "Material", Enum.Material.SmoothPlastic)
+            end
+        end
+    end)
+end
+
+local function aplicarGlobal()
+    pcall(function() setP(US.GameSettings, "GraphicsQuality", Enum.QualityLevel.Level1) end)
+    pcall(function() if setfpscap then setfpscap(240) end end)
+    pcall(function()
+        setP(L, "GlobalShadows", false); setP(L, "ShadowSoftness", 0); setP(L, "Brightness", 2)
+        setP(L, "Ambient", Color3.fromRGB(90, 90, 90)); setP(L, "OutdoorAmbient", Color3.fromRGB(110, 110, 110))
+        setP(L, "EnvironmentDiffuseScale", 0); setP(L, "EnvironmentSpecularScale", 0)
+        setP(L, "FogStart", 9e9); setP(L, "FogEnd", 9e9)
+    end)
+    pcall(function()
+        local tm = w:FindFirstChildOfClass("Terrain")
+        if tm then
+            setP(tm, "WaterWaveSize", 0); setP(tm, "WaterWaveSpeed", 0)
+            setP(tm, "WaterReflectance", 0); setP(tm, "WaterTransparency", 1)
+            setP(tm, "Decoration", false)
+        end
+    end)
+end
+
+function ligarAntiLag()
+    if Ativo then return end
+    Ativo = true
+    CFG.AntiLag = true
+    PROCESSADOS = {}
+
+    task.spawn(function()
+        local n = 0
+        local roots = {w, P:FindFirstChild("PlayerGui"), L, game:GetService("ReplicatedStorage"), game:GetService("StarterGui")}
+        for _, root in ipairs(roots) do
+            if root and Ativo then
+                for _, o in ipairs(root:GetDescendants()) do
+                    if not Ativo then return end
+                    otimizar(o)
+                    n = n + 1
+                    if n % 300 == 0 then task.wait() end
+                end
+            end
+        end
+        if Ativo then
+            aplicarGlobal()
+            print("✅ Antilag ON — " .. n .. " objetos processados")
+        end
+    end)
+end
+
+function desligarAntiLag()
+    Ativo = false
+    CFG.AntiLag = false
+
+    local count = 0
+    for obj, props in pairs(BACKUP) do
+        if obj and obj.Parent then
+            for prop, original in pairs(props) do
+                pcall(function() obj[prop] = original end)
+                count = count + 1
+            end
+        end
+    end
+    BACKUP = {}
+    PROCESSADOS = {}
+
+    pcall(function() US.GameSettings.GraphicsQuality = Enum.QualityLevel.Automatic end)
+    pcall(function()
+        L.GlobalShadows = true
+        L.ShadowSoftness = 0.5
+        L.Brightness = 2
+        L.Ambient = Color3.fromRGB(70, 70, 70)
+        L.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        L.EnvironmentDiffuseScale = 1
+        L.EnvironmentSpecularScale = 1
+        L.FogStart = 100
+        L.FogEnd = 10000
+    end)
+    pcall(function()
+        local tm = w:FindFirstChildOfClass("Terrain")
+        if tm then
+            tm.WaterWaveSize = 0.15
+            tm.WaterWaveSpeed = 10
+            tm.WaterReflectance = 0.05
+            tm.WaterTransparency = 0.7
+            tm.Decoration = true
+        end
+    end)
+
+    print("🔄 Antilag OFF — " .. count .. " propriedades restauradas")
+end
+
+-- ═══ TRAVAS DE LIGHTING ═══
+L:GetPropertyChangedSignal("Brightness"):Connect(function()
+    if Ativo and L.Brightness ~= 2 then L.Brightness = 2 end
+end)
+L:GetPropertyChangedSignal("Ambient"):Connect(function()
+    if Ativo and L.Ambient ~= Color3.fromRGB(90,90,90) then L.Ambient = Color3.fromRGB(90,90,90) end
+end)
+L:GetPropertyChangedSignal("OutdoorAmbient"):Connect(function()
+    if Ativo and L.OutdoorAmbient ~= Color3.fromRGB(110,110,110) then L.OutdoorAmbient = Color3.fromRGB(110,110,110) end
+end)
+
+game.DescendantAdded:Connect(function(o)
+    if not Ativo then return end
+    if CLASSES[o.ClassName] or o:IsA("BasePart") then
+        task.defer(otimizar, o)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(15)
+        if Ativo then aplicarGlobal() end
+    end
+end)
+
+-- ═══ TELA ESTICADA ═══
+RS.RenderStepped:Connect(function()
+    if CFG.TelaEsticada then
+        C.CFrame = C.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, CFG.Esticada, 0, 0, 0, 1)
+    end
+end)
+
+-- ═══ LOOPS DO HUD ═══
+local fpsHistory = {}
+RS.RenderStepped:Connect(function()
+    if not CFG.HUD then return end
+    local now = tick()
+    table.insert(fpsHistory, now)
+    while #fpsHistory > 0 and fpsHistory[1] < now - 1 do
+        table.remove(fpsHistory, 1)
+    end
+    local fps = #fpsHistory
+    if math.floor(now * 10) % 3 == 0 then
+        fpsLbl.Text = "FPS " .. fps
+        if fps >= 50 then
+            fpsLbl.TextColor3 = COR.green
+        elseif fps >= 30 then
+            fpsLbl.TextColor3 = Color3.fromRGB(255, 200, 60)
+        else
+            fpsLbl.TextColor3 = COR.red
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if not CFG.HUD then continue end
+        local ok, ping = pcall(function() return math.floor(P:GetNetworkPing() * 1000) end)
+        if ok and ping then
+            pingLbl.Text = "PING " .. ping .. "ms"
+            if ping < 80 then
+                pingLbl.TextColor3 = COR.purple
+            elseif ping < 160 then
+                pingLbl.TextColor3 = Color3.fromRGB(255, 200, 60)
+            else
+                pingLbl.TextColor3 = COR.red
+            end
+        end
+    end
+end)
+
+print("═══════════════════════════════════")
+print("💜 VENTIS HUB — ATIVADO")
+print("═══════════════════════════════════")
